@@ -1,0 +1,37 @@
+//
+//  BXGDownloadTableProtocol.h
+//  Demo
+//
+//  Created by apple on 2018/7/5.
+//  Copyright © 2018年 com.bokecc.www. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import "BXGDownloadPersistAPIModel.h"
+
+@protocol BXGDownloadTableProtocol <NSObject>
+
+//将已下载的视频设置为已观看状态
+-(void)updateVideoTableToWatchedStatusWithVideoIdx:(NSString*)videoIdx;
+
+//添加/更新记录
+-(BOOL)addDownloadItem:(BXGDownloadPersistAPIModel*)item;
+-(BOOL)addDownloadItems:(NSArray<BXGDownloadPersistAPIModel*>*)items;
+
+//删除待下载
+-(BOOL)deleteWaitingDownloadItem:(BXGDownloadPersistAPIModel*)item;
+-(BOOL)deleteWaitingDownloadItems:(NSArray<BXGDownloadPersistAPIModel*>*)arrDownloadingModel;
+-(BOOL)deleteAllWaitingDownloadItemsUnderCourseId:(NSString*)courseId;
+-(BOOL)deleteAllWaitingDownloadItems;
+
+
+//删除已下载
+-(BOOL)deleteDownloadedItem:(BXGDownloadPersistAPIModel*)item;
+-(BOOL)deleteDownloadedItems:(NSArray<BXGDownloadPersistAPIModel*>*)arrDownloadingModel;
+-(BOOL)deleteAllDownloadedItemsUnderCourseId:(NSString*)courseId;
+-(BOOL)deleteAllDownloadedItems;
+
+//查询--将查询的数据保存在内存中
+-(NSMutableArray<BXGDownloadPersistAPIModel*>*)searchAllDownloadInfo;
+
+@end

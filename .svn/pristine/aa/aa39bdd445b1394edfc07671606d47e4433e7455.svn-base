@@ -1,0 +1,57 @@
+//
+//  BXGDownloadAPIModel.h
+//  Demo
+//
+//  Created by apple on 2018/7/5.
+//  Copyright © 2018年 com.bokecc.www. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface BXGDownloadAPIModel : NSObject
+
+@property (nonatomic, strong) NSString *courseId;
+@property (nonatomic, strong) NSString *courseName;
+@property (nonatomic, strong) NSString *courseType;     //课程类型 就业班-1, 精品微课-2, 免费微课-3
+@property (nonatomic, strong) NSString *phaseId;
+@property (nonatomic, strong) NSString *phaseName;
+@property (nonatomic, strong) NSString *phaseSort;
+@property (nonatomic, strong) NSString *moduleId;
+@property (nonatomic, strong) NSString *moduleName;
+@property (nonatomic, strong) NSString *moduleSort;
+@property (nonatomic, strong) NSString *sectionId;      //sectionId = 106625
+@property (nonatomic, strong) NSString *sectionName;    //sectionName: 考试要求
+@property (nonatomic, strong) NSString *sectionSort;    //sort: 42383
+@property (nonatomic, strong) NSString *sectionIsPass;  //isPass
+@property (nonatomic, strong) NSString *sectionIsTry;   //isTry
+@property (nonatomic, strong) NSString *pointId;        //pointId: 10050424
+@property (nonatomic, strong) NSString *pointName;      //pointName: 02-环境安装
+@property (nonatomic, strong) NSString *pointSort;      //sort: 79078
+@property (nonatomic, strong) NSString *videoId;        //videoId: 10050142
+@property (nonatomic, strong) NSString *ccVideoId;      //ccVideoId: B65A43879308369C9C33DC5901307461
+@property (nonatomic, assign) BOOL watched;
+
+//-(instancetype)init
+-(NSString *)generateCustomId;
+
+-(instancetype)initWithCourseId:(NSString* _Nonnull)courseId
+                  andCourseName:(NSString* _Nonnull)courseName
+                  andCourseType:(NSString* _Nonnull)courseType
+                     andPhaseId:(NSString* _Nonnull)phaseId
+                   andPhaseName:(NSString* _Nonnull)phaseName
+                   andPhaseSort:(NSString* _Nonnull)phaseSort
+                    andModuleId:(NSString* _Nonnull)moduleId
+                  andModuleName:(NSString* _Nonnull)moduleName
+                  andModuleSort:(NSString* _Nonnull)moduleSort
+                   andSectionId:(NSString* _Nonnull)sectionId
+                 andSectionName:(NSString* _Nonnull)sectionName
+                 andSectionSort:(NSString* _Nonnull)sectionSort
+               andSectionIsPass:(NSString* _Nullable)sectionIsPass
+                andSectionIsTry:(NSString* _Nullable)sectionIsTry
+                     andPointId:(NSString* _Nonnull)pointId
+                   andPointName:(NSString* _Nonnull)pointName
+                   andPointSort:(NSString* _Nonnull)pointSort
+                     andVideoId:(NSString* _Nonnull)videoId
+                   andCCVideoId:(NSString* _Nonnull)ccVideoId
+                   andIsWatched:(BOOL)watched;
+@end

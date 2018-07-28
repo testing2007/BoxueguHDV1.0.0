@@ -1,0 +1,190 @@
+//
+//  BXGNetworkApp01API.swift
+//  BoxueguHD
+//
+//  Created by Renying Wu on 2018/7/11.
+//  Copyright © 2018年 itcast. All rights reserved.
+//
+
+import Foundation
+import SwiftyJSON
+import ObjectMapper
+
+class BXGNetworkApp01ParserItem:Mappable {
+    var success: Bool?
+    var errorMessage: String?
+    var resultObject: Any?
+    
+//    init(jsonData: JSON) {
+//        success    = jsonData["success"].bool
+//        errorMessage = jsonData["errorMessage"].string
+//        resultObject  = jsonData["resultObject"]
+//    }
+    required init?(map: Map) {
+        
+    }
+    
+    func mapping(map: Map) {
+        success <- map["success"]
+        errorMessage <- map["errorMessage"]
+        resultObject <- map["resultObject"]
+    }
+    
+}
+
+class BXGNetworkApp01Parser: BXGNetworkAPIParser {
+    
+    func parse(_ data: Data) -> NetworkResponse {
+        
+        var status = 500
+        var message = ""
+        do {
+            print("data: \(data)")
+            // status
+            let jsonData = try JSON(data: data)
+            let item = Mapper<BXGNetworkApp01ParserItem>().map(JSONObject: jsonData.dictionaryObject)
+//            let item = BXGNetworkApp01ParserItem.init(jsonData: jsonData)
+            
+            if let item = item {
+                if let success = item.success {
+                    if(success) {
+                        status = 200
+                    }else {
+                        status = 400
+                    }
+                }else {
+                    message = "JSON解析错误"
+                    status = 500
+                }
+                
+                if let msg = item.errorMessage {
+                    if(msg == "1001") {
+                        status = 401
+                        message = "用户已过期"
+                    }else {
+                        message = msg
+                    }
+                }else {
+                    message = "";
+                }
+                
+                print("item: \(item)")
+                return .success(status: status, message: message, result: item.resultObject)
+            }else {
+                status = 500
+                message = "JSON解析错误"
+                print("\(status)\n\(message)\n")
+                return .success(status: 500, message: message, result: nil)
+            }
+            
+            
+        }catch {
+            // json 解析错误
+            status = 500
+            message = "JSON解析错误"
+            print("\(status)\n\(message)\n")
+            return .success(status: 500, message: message, result: nil)
+        }
+    }
+}
+
+enum BXGNetworkApp1API {
+    case login(username: String, password: String)
+    
+    case construePlanByMonth                                                // 月计划
+    case construeLivePlanList(day: String?)                                     // 直播计划列表 day: yyyy-MM-dd
+    
+    case construeLivePlanDetail(planId: Int)                                     // 直播计划列表 day: yyyy-MM-dd
+    case construeReplayDetail(planId: Int)                                     // 直播计划列表 day: yyyy-MM-dd
+    case postFeedback(text: String, mobile: String?)
+    case updateVideoStatus(courseId: Int, sectionId: Int, videoId: Int, studyStatus:Int)
+
+//    - (void)appRequestUpdateVideoStatusWithCourseId:(NSString * _Nullable)courseId SectionId:(NSString * _Nullable)sectionId VideoId:(NSString * _Nullable)videoId StudyStatus:(NSString * _Nullable)studyStatus Finished:(BXGNetworkCallbackBlockType _Nullable) finished {
+//    NSMutableDictionary *para = [NSMutableDictionary new];
+//    para[@"courseId"] = courseId;
+//    para[@"sectionId"] = sectionId;
+//    para[@"videoId"] = videoId;
+//    para[@"studyStatus"] = studyStatus;
+//
+//    NSString *url = @;
+    
+//    para[@"planId"] = planId;
+//
+//    // url
+//    NSString *url = @";
+
+}
+
+extension BXGNetworkApp1API: BXGTargetType {
+    var parser: BXGNetworkAPIParser {
+        return BXGNetworkApp01Parser()
+    }
+    
+    var cachePolicy: NetworkCachePolicy {
+        return .none
+    }
+    
+    var parameters: [String : Any]? {
+        switch self {
+        case .login(let username, let password):
+            return ["username":username, "password":password]
+        case .construePlanByMonth:
+            return nil
+        
+        case .construeLivePlanList(let day):
+            var para = [String:Any]()
+            para["day"] = day
+            return para
+        case .construeLivePlanDetail(let planId):
+            return ["planId": planId]
+        case .construeReplayDetail(let planId):
+            return ["planId": planId]
+        case .postFeedback(let text, let mobile):
+            var para = [String:Any]()
+            para["fb_phone"] = mobile
+            para["fb_context"] = text
+            return para
+            
+        case .updateVideoStatus(let courseId, let sectionId , let videoId ,let studyStatus):
+            var para = [String:Any]()
+                para["courseId"] = courseId;
+                para["sectionId"] = sectionId;
+                para["videoId"] = videoId;
+                para["studyStatus"] = studyStatus;
+            return para
+        }
+    }
+        
+    var baseURL: URL {
+        return BXGNetworkBaseURL.app.baseURL
+    }
+    
+    var path: String {
+        switch self {
+        case .login:
+            return "/user/login/"
+            
+        case .construePlanByMonth:
+            return "/bxg/appConstruePlan/getConstruePlanByMonth"
+            
+        case .construeLivePlanList:
+            return "/bxg/appConstruePlan/getConstruePlanByDay"
+            
+        case .construeLivePlanDetail:
+            return "/bxg/appConstruePlan/getConstruePlanById"
+            
+        case .construeReplayDetail:
+            return "/bxg/appConstruePlan/getCallBackPlanById"
+            
+        case .postFeedback:
+            return "/bxg/fb/addfb"
+            
+        case .updateVideoStatus:
+            return "/coursePlay/updateVideoStatus"
+        }
+    }
+    
+    var headers: [String : String]? {
+        return nil
+    }
+}

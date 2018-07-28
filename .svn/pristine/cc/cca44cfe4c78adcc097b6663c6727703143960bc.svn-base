@@ -1,0 +1,49 @@
+//
+//  BXGCoursePlayerVC.swift
+//  BoxueguHD
+//
+//  Created by Renying Wu on 2018/7/17.
+//  Copyright © 2018年 itcast. All rights reserved.
+//
+
+import UIKit
+import AVKit
+class BXGCoursePlayerVC: UIViewController  {
+    
+    var pipController: AVPictureInPictureController?
+    
+    lazy var player: BXGVODPlayer = {
+        return BXGVODPlayer()
+    }()
+    
+    lazy var playerView: UIView = {
+        return self.player.playerView
+        }()!
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.addSubview(playerView)
+        playerView.snp.makeConstraints { (make) in
+            make.left.top.right.bottom.equalToSuperview()
+        }
+        player.start()
+        
+//        pipController.playerLayer = player.avlayer
+//        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+//            let bool = AVPictureInPictureController.isPictureInPictureSupported()
+//            print(bool)
+//            self.pipController = AVPictureInPictureController(playerLayer: self.player.avlayer!)
+//            self.pipController?.delegate = self
+//            self.pipController?.startPictureInPicture()
+//        }
+        
+    }
+}
+
+
+extension BXGCoursePlayerVC:AVPictureInPictureControllerDelegate  {
+    
+}
+
+
+

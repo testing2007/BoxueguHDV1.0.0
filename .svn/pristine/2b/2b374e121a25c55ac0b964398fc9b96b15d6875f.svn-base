@@ -1,0 +1,200 @@
+//
+//  BXGVODPlayerListManager.swift
+//  BoxueguHD
+//
+//  Created by Renying Wu on 2018/7/18.
+//  Copyright © 2018年 itcast. All rights reserved.
+//
+
+import Foundation
+
+
+protocol BXGPlayerListManagerDelegate: AnyObject {
+    func videoReadyToPlay(manager:BXGVODPlayerListManager, video: BXGVODPlayerVideoModel, index: Int)
+    func vidooPlaying(manager:BXGVODPlayerListManager, video: BXGVODPlayerVideoModel, index: Int)
+    func videoPlayDone(manager:BXGVODPlayerListManager, video: BXGVODPlayerVideoModel, index: Int)
+    func videoDidChange(manager:BXGVODPlayerListManager, video: BXGVODPlayerVideoModel, index: Int)
+    func videoWillPlay(manager:BXGVODPlayerListManager, video: BXGVODPlayerVideoModel, index: Int)
+    func listPlayDone(manager:BXGVODPlayerListManager, list: [BXGVODPlayerVideoModel])
+}
+
+protocol BXGPlayerListManagerDataSource {
+    func seekTime(manager:BXGVODPlayerListManager, video: BXGVODPlayerVideoModel) -> Float
+    func localPath(manager:BXGVODPlayerListManager, video: BXGVODPlayerVideoModel) -> String
+}
+
+class BXGVODPlayerVideoModel {
+    init(id fromId: String, name fromName: String, resourseId fromResourceId: String, tag fromTag: Int, customId fromCustomId: String?) {
+        id = fromId
+        name = fromName
+        resourceId = fromResourceId
+        tag = fromTag
+        customId = fromCustomId
+    }
+    var id: String
+    var name: String
+    var resourceId: String
+    var tag: Int = 0
+    var customId: String?
+}
+
+class BXGVODPlayerListManager {
+    static let shared: BXGVODPlayerListManager = {
+        return BXGVODPlayerListManager()
+    }()
+    
+    // MARK: 多播代理
+    private lazy var delegates: Array<BXGPlayerListManagerDelegate> = Array<BXGPlayerListManagerDelegate>()
+    
+    public func addDelegate(any: BXGPlayerListManagerDelegate) {
+        
+        for d in delegates {
+            if (d === any) {
+                return
+            }
+        }
+        delegates.append(any)
+        
+    }
+    
+    func installObserver() {
+        BXGVODPlayerManager.shared.addDelegate(any: self)
+    }
+    
+    func uninstallObserver() {
+        BXGVODPlayerManager.shared.removeDelegate(any: self)
+    }
+    
+    public func removeDelegate(any: BXGPlayerListManagerDelegate) {
+        for (index, d) in delegates.enumerated() {
+            if (d === any) {
+                delegates.remove(at: index)
+            }
+        }
+            }
+    public var dataSource: BXGPlayerListManagerDataSource?
+    
+//    @property (nonatomic, assign) NSInteger currentIndex;
+//    @property (nonatomic, assign) NSInteger listCount;
+//    @property (nonatomic, strong) BXGVODPlayerVideoModel *currentVideo;
+//    @property (nonatomic, strong) NSArray <BXGVODPlayerVideoModel *> *videos; // readonly
+//
+//    //- (instancetype)initWithCustomId:(NSString *)customId;
+//    // * 代理
+//    - (void)addDelegate:(id<BXGPlayerListManagerDelegate>)delegate;
+//    - (void)removeDelegate:(id<BXGPlayerListManagerDelegate>)delegate;
+//
+//    - (void)playWithVideoList:(NSArray <BXGVODPlayerVideoModel *> *)videos andPlay:(BOOL)isPlay; //
+//    - (void)playOnListWithVideoId:(NSString *)videoId;
+//    - (void)playOnListWithIndex:(NSInteger)index;
+//    - (void)playNext;
+//    - (void)playDone;
+//    - (BOOL)hasNext;
+//    - (void)uninstall;
+    
+    var videoList: [BXGVODPlayerVideoModel]?
+    var currentVideo: BXGVODPlayerVideoModel?
+    var currentIndex: Int?
+    
+    func requestPlay(list: [BXGVODPlayerVideoModel]?, isAutoPlay: Bool) {
+        videoList = list
+        
+        if let list = list, list.count > 0, isAutoPlay {
+            self.play(index: 0)
+        }
+    }
+    
+    func play(index: Int) {
+        
+        guard let videoList = videoList, index < videoList.count else {
+            return
+        }
+        
+        if let currentVideo = currentVideo, let currentIndex = currentIndex {
+            for d in delegates {
+                d.videoDidChange(manager: self, video: currentVideo, index: currentIndex)
+            }
+        }
+        
+        currentIndex = index
+        let video = videoList[index]
+        currentVideo = video
+        for d in delegates {
+            d.videoReadyToPlay(manager: self, video: video, index: index)
+        }
+        
+    }
+    
+    func play(video: BXGVODPlayerVideoModel) {
+        let path = dataSource?.localPath(manager: self, video: video) ?? nil
+        let seekTime = dataSource?.seekTime(manager: self, video: video) ?? 0.0
+        
+        BXGVODPlayerManager.shared.requestPlay(videoId: video.resourceId, path: path, customId: video.customId ?? "", seekTime: seekTime)
+    }
+}
+
+
+extension BXGVODPlayerListManager: BXGPlayerManagerDelegate {
+    func playStateDidChage(playerManager: BXGVODPlayerManager, isPlaying: Bool) {
+        
+    }
+    
+    func didReachEnd(playerManager: BXGVODPlayerManager) {
+        
+    }
+    
+    func requestFailed(playerManager: BXGVODPlayerManager, error: Error?) {
+        
+    }
+    
+    func didFailed(playerManager: BXGVODPlayerManager, error: Error?) {
+        
+    }
+    
+    func readyToPlay(playerManager: BXGVODPlayerManager) {
+        
+    }
+    
+    func playTimeDidChage(playerManager: BXGVODPlayerManager, currentTime: Float, durationTime: Float) {
+        
+    }
+    
+    func loadedTimeDidChage(playerManager: BXGVODPlayerManager, durationTime: Float) {
+        
+    }
+    
+    func bufflingStateDidChange(playerManager: BXGVODPlayerManager, isBuffling: Bool) {
+        
+    }
+    
+    func startSeek(playerManager: BXGVODPlayerManager, startSeekTime: Float, currentTime: Float, durationTime: Float) {
+        
+    }
+    
+    func Seeking(playerManager: BXGVODPlayerManager, SeekingTime: Float, currentTime: Float, durationTime: Float) {
+        
+    }
+    
+    func endSeek(playerManager: BXGVODPlayerManager, endSeekTime: Float, currentTime: Float, durationTime: Float) {
+        
+    }
+    
+    func startRequest(playerManager: BXGVODPlayerManager) {
+        
+    }
+    
+    func rateDidChange(playerManager: BXGVODPlayerManager, isBuffling: Bool) {
+        
+    }
+    
+    func videoDidStop(playerManager: BXGVODPlayerManager, lastPlayedTime: Float, durantionTime: Float) {
+        
+    }
+    
+    
+}
+
+
+
+
+

@@ -1,0 +1,137 @@
+//
+//  BXGNetworkApp2API.swift
+//  BoxueguHD
+//
+//  Created by Renying Wu on 2018/7/12.
+//  Copyright © 2018年 itcast. All rights reserved.
+//
+
+import Foundation
+import SwiftyJSON
+import Moya
+
+///courseStudyCenter/getStudentEmploymentCourse
+
+class BXGApp2APIParserItem {
+    
+    var status: Int?
+    var message: String?
+    var result: Any?
+    var errorMessage: String?
+    
+    init(jsonData: JSON) {
+        status    = jsonData["status"].int
+        message = jsonData["message"].string
+        result  = jsonData["result"]
+        errorMessage = jsonData["errorMessage"].string
+    }
+}
+
+class BXGApp2APIParser: BXGNetworkAPIParser {
+    
+    func parse(_ data: Data) -> NetworkResponse {
+        
+        var status = 500
+        var message = ""
+        do {
+            print("data: \(data)")
+            // status
+            let jsonData = try JSON(data: data)
+            let item = BXGApp2APIParserItem.init(jsonData: jsonData)
+            
+            
+            // 判断用户是否过期
+            
+            if let itemStatus = item.status  {
+                if(itemStatus == 401 || itemStatus == 1001) {
+                    status = 401
+                }else {
+                    status = itemStatus
+                }
+            }
+            
+            if let errorMsg = item.errorMessage {
+                if errorMsg == "1001" {
+                    status = 401
+                }
+            }
+            
+            if status == 401 {
+                message = "用户已过期"
+            }else {
+                if let itemMessage = item.message {
+                    message = itemMessage
+                }else {
+                    message = ""
+                }
+            }
+            return .success(status: status, message: message, result: item.result)
+
+        }catch {
+            // json 解析错误
+            status = 500
+            message = "JSON解析错误"
+            print("\(status)\n\(message)\n")
+            return .success(status: 500, message: message, result: nil)
+        }
+    }
+}
+
+enum BXGNetworkApp2API {
+    case courseStudyCenterEmploymentCourse()
+    case courseStudyCenterMicroCourse(pageNumber: Int, pageSize: Int)
+    case courseStudyCenterStudentApplyInformationPerfect()
+    case courseStudyCenterQuerySDAndAggregation(courseId: Int)
+}
+
+extension BXGNetworkApp2API: BXGTargetType {
+    var parameters: [String : Any]? {
+        switch self {
+        case .courseStudyCenterEmploymentCourse:
+            return nil
+            
+        case let .courseStudyCenterMicroCourse(pageNumber: pageNumber, pageSize: pageSize):
+            return ["pageNumber": pageNumber, "pageSize": pageSize]
+
+        case .courseStudyCenterStudentApplyInformationPerfect:
+            return nil
+        case .courseStudyCenterQuerySDAndAggregation(let courseId):
+            return ["courseId": courseId]
+        }
+    }
+    
+    var path: String {
+        switch self {
+        case .courseStudyCenterEmploymentCourse:
+            return "/courseStudyCenter/getStudentEmploymentCourse"
+            
+        case .courseStudyCenterMicroCourse:
+            return "/courseStudyCenter/getStudentMicroCourse"
+            
+        case .courseStudyCenterStudentApplyInformationPerfect:
+            return "/courseStudyCenter/studentApplyInformationPerfect"
+            
+        case .courseStudyCenterQuerySDAndAggregation:
+            return "/courseStudyCenter/querySDAndAggregation"
+        }
+    }
+    
+    var parser: BXGNetworkAPIParser {
+        return BXGApp2APIParser()
+    }
+    
+    var cachePolicy: NetworkCachePolicy {
+        return .none
+    }
+    
+    var baseURL: URL { // 这个替换成 url
+        return BXGNetworkBaseURL.app.baseURL
+    }
+    
+    
+    
+    var headers: [String : String]? {
+        return nil
+    }
+
+}

@@ -1,0 +1,208 @@
+//
+//  BXGDownloadingVC.swift
+//  BoxueguHD
+//
+//  Created by apple on 2018/7/16.
+//  Copyright © 2018年 itcast. All rights reserved.
+//
+
+import UIKit
+
+class BXGDownloadingVC: UIViewController {
+
+    var bEdit:Bool = false;
+//    var rightBarItem:UIBarButtonItem?
+    var setSelectItem:Set<String>?; //存放所有被选中的
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        // Do any additional setup after loading the view.
+        self.title = "下载管理"
+        setSelectItem = Set<String>()//创建空的Set集合
+        self.installUI();
+    }
+    
+    lazy var downloadTableView:UITableView = {
+        let tableView : UITableView = UITableView.init(frame: CGRect.zero, style: .plain)
+        tableView.delegate = self;
+        tableView.dataSource = self;
+        tableView.backgroundColor = UIColor.hexColor(hex: 0xFFFFFF)
+        tableView.separatorColor = UIColor.hexColor(hex: 0xF5F5F5)
+        tableView.tableFooterView = UIView()
+        tableView.rowHeight = 44
+
+        //分割线
+        tableView.separatorStyle = .singleLine;
+        
+        tableView.register(BXGDownloadingCell.self, forCellReuseIdentifier: BXGDownloadingCell.description())
+        return tableView;
+    }()
+    
+    lazy var downloadNonEditBottomView:BXGDownloadingBottomView = {
+        var bottomView:BXGDownloadingBottomView = BXGDownloadingBottomView.init(frame: CGRect.zero, bEdit: false)
+        bottomView.nonEditDelegate = self;
+        bottomView.backgroundColor = UIColor.hexColor(hex: 0xFFFFFF)
+        bottomView.layer.shadowColor = UIColor.black.cgColor
+        bottomView.layer.shadowOffset = CGSize(width: 10, height: -8)
+        bottomView.layer.shadowOpacity = 0.04
+        return bottomView;
+    }()
+    
+    lazy var downloadEditBottomView:BXGDownloadingBottomView = {
+        var bottomView:BXGDownloadingBottomView = BXGDownloadingBottomView.init(frame: CGRect.zero, bEdit: true)
+        bottomView.editDelegate = self;
+        bottomView.backgroundColor = UIColor.hexColor(hex: 0xFFFFFF)
+        bottomView.layer.shadowColor = UIColor.black.cgColor
+        bottomView.layer.shadowOffset = CGSize(width: 10, height: -8)
+        bottomView.layer.shadowOpacity = 0.04
+        return bottomView;
+    }()
+    
+    func installUI() {
+        self.view.addSubview(self.downloadTableView)
+        self.downloadTableView.snp.makeConstraints { (make) in
+            make.left.top.right.equalTo(0)
+            make.bottom.equalTo(-49)
+        }
+        
+        self.view.addSubview(self.downloadNonEditBottomView)
+        self.view.addSubview(self.downloadEditBottomView)
+        self.downloadNonEditBottomView.snp.makeConstraints { (make) in
+            make.left.right.bottom.equalTo(0)
+            make.height.equalTo(49);
+        }
+        self.downloadEditBottomView.snp.makeConstraints { (make) in
+            make.left.right.bottom.equalTo(0)
+            make.height.equalTo(49);
+        }
+
+        self.navigationItem.rightBarButtonItem = UIBarButtonItem(customView: self.rightBarButton)
+        self.adjustBottomViewShow();
+    }
+    
+    lazy var rightBarButton : UIButton = {
+        let btn:UIButton = UIButton(type: UIButtonType.custom)
+        btn.frame = CGRect(x: 0, y: 0, width: 30, height: 30)
+        btn.setTitle("编辑", for: UIControlState.normal)
+        btn.setTitleColor(UIColor.hexColor(hex: 0x34495E), for: UIControlState.normal)
+        btn.titleLabel?.font = UIFont.pingFangSCMedium(withSize: 15)
+        btn.addTarget(self, action: #selector(BXGDownloadingVC.onClickRightEditBtn), for: UIControlEvents.touchUpInside)
+        return btn;
+    }()
+    
+    @objc func onClickRightEditBtn() {
+        self.bEdit = !self.bEdit
+        self.adjustBottomViewShow()
+        self.downloadTableView.reloadData();
+        NSLog("onClickRightEditBtn")
+    }
+    
+    func adjustBottomViewShow() {
+        if(self.bEdit) {
+            self.rightBarButton.setTitle("取消", for: UIControlState.normal);
+            self.downloadNonEditBottomView.isHidden = true
+            self.downloadEditBottomView.isHidden = false
+            self.setSelectItem?.removeAll();
+            self.downloadTableView.reloadData();
+        } else {
+            self.rightBarButton.setTitle("编辑", for: UIControlState.normal);
+            self.downloadNonEditBottomView.isHidden = false
+            self.downloadEditBottomView.isHidden = true
+        }
+    }
+    
+    override func didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+        // Dispose of any resources that can be recreated.
+    }
+    
+    func setSelImageByEditMode(cell:BXGDownloadingCell) {
+        if(bEdit) {
+            if let iden = cell.identifier {
+                if (setSelectItem?.contains(iden))! {
+                    cell.bSel = true;
+//                    cell.selectCell(bHighlighted: true)
+                } else {
+//                    cell.selectCell(bHighlighted: false)
+                    cell.bSel = false;
+                }
+            }
+        }
+    }
+}
+
+extension BXGDownloadingVC : UITableViewDelegate {
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        if(bEdit) {
+            let  cell:BXGDownloadingCell = tableView.cellForRow(at: indexPath) as! BXGDownloadingCell;
+            if let iden = cell.identifier {
+                if (setSelectItem?.contains(iden))! {
+                    setSelectItem?.remove(iden)
+//                    cell.selectCell(bHighlighted: false)
+                    cell.bSel = false;
+                } else {
+                    setSelectItem?.insert(iden)
+//                    cell.selectCell(bHighlighted: true)
+                    cell.bSel = true
+                }
+            }
+        }
+    }
+}
+
+extension BXGDownloadingVC : UITableViewDataSource {
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return 10
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let  cell:BXGDownloadingCell = tableView.dequeueReusableCell(withIdentifier: BXGDownloadingCell.description(), for: indexPath) as! BXGDownloadingCell
+        cell.delegate = self;
+        cell.identifier = String(indexPath.row); //MARK:- TODO
+        cell.updateContraintForEditMode(bEdit: self.bEdit)
+        cell.coureNameLabel.text = "courseName"
+        cell.downloadProgressView.progress = 0.5; //Float(Double(MADV_RANDOM % 100 * 1/100));
+        cell.downloadSpeedLabel.text = "100kb/s"
+        cell.downloadStaus = BXGDownloadState.none;
+//        cell.downloadStaus
+//        cell.downloadStatusBtn.setImage(UIImage.init(named: "download_pause"), for: .normal)
+        
+        self.setSelImageByEditMode(cell: cell);
+        
+        return cell
+    }
+}
+
+extension BXGDownloadingVC : BXGDownloadingNonEditDelegate {
+    func onDownloadingAllStart() -> Void {
+        NSLog("BXGDownloadingVC::onDownloadingAllStart")
+    }
+    
+    func onDownloadingAllPause() -> Void {
+        NSLog("BXGDownloadingVC::onDownloadingAllPause")
+    }
+}
+
+extension BXGDownloadingVC : BXGDownloadingEditDelgate {
+    func onSelectAll() -> Void {
+        NSLog("BXGDownloadingVC::onSelectAll")
+    }
+    
+    func onConfirmDelete() -> Void {
+        NSLog("BXGDownloadingVC::onConfirmDelete")
+    }
+}
+
+extension BXGDownloadingVC : BXGDownloadingCellDelegate {
+    func onSelectOptionItem(bSelected:Bool, cellItem:BXGDownloadingCell) -> Void { //bSelected:Bool, cellItem: BXGDownloadingCell
+        NSLog("onSelectOptionItem")
+        if let iden = cellItem.identifier {
+            if(bSelected) {
+                setSelectItem?.insert(iden)
+            } else {
+                setSelectItem?.remove(iden)
+            }
+        }
+    }
+}

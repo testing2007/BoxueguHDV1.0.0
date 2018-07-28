@@ -1,0 +1,221 @@
+//
+//  BXGVODPlayerManager.swift
+//  BoxueguHD
+//
+//  Created by Renying Wu on 2018/7/18.
+//  Copyright © 2018年 itcast. All rights reserved.
+//
+
+import Foundation
+enum PlayerViewType {
+    case course
+    case livePlayback
+}
+
+protocol BXGPlayerManagerDelegate: AnyObject {
+    func playStateDidChange(playerManager: BXGVODPlayerManager, isPlaying: Bool)
+    func didReachEnd(playerManager: BXGVODPlayerManager)
+    func requestFailed(playerManager: BXGVODPlayerManager, error: Error?)
+    func didFailed(playerManager: BXGVODPlayerManager, error: Error?)
+    func readyToPlay(playerManager: BXGVODPlayerManager)
+    func playTimeDidChage(playerManager: BXGVODPlayerManager, currentTime: Float, durationTime: Float)
+    func loadedTimeDidChage(playerManager: BXGVODPlayerManager, durationTime: Float)
+    func bufflingStateDidChange(playerManager: BXGVODPlayerManager, isBuffling: Bool)
+    
+    func startSeek(playerManager: BXGVODPlayerManager,startSeekTime: Float ,currentTime: Float, durationTime: Float)
+    func Seeking(playerManager: BXGVODPlayerManager,SeekingTime: Float ,currentTime: Float, durationTime: Float)
+    func endSeek(playerManager: BXGVODPlayerManager,endSeekTime: Float ,currentTime: Float, durationTime: Float)
+    
+    func startRequest(playerManager: BXGVODPlayerManager)
+    func rateDidChange(playerManager: BXGVODPlayerManager, rate: Float)
+    func videoDidStop(playerManager: BXGVODPlayerManager, lastPlayedTime:Float, durantionTime:Float)
+}
+
+class BXGVODPlayerManager {
+    
+    var rate: Float {
+        get {
+            return self.player?.playerRate ?? 1.0
+        }
+        set {
+            self.player?.playerRate = newValue
+            
+            for d in self.delegates {
+                d.rateDidChange(playerManager: self, rate: newValue)
+            }
+            
+        }
+    }
+    
+    func reset() {
+        self.player?.releasePlayer()
+    }
+    
+    func seekToTime(time: Float) {
+        player?.seekToTime(sec: time)
+    }
+    
+    static let shared: BXGVODPlayerManager = {
+        return BXGVODPlayerManager()
+    }()
+    
+    var player: BXGVODPlayer?
+    
+    // MARK: 多播代理
+    private lazy var delegates: Array<BXGPlayerManagerDelegate> = Array<BXGPlayerManagerDelegate>()
+    
+    public func addDelegate(any: BXGPlayerManagerDelegate) {
+    
+        for d in delegates {
+            if (d === any) {
+                return
+            }
+        }
+        delegates.append(any)
+    }
+    
+    public func removeDelegate(any: BXGPlayerManagerDelegate) {
+        for (index, d) in delegates.enumerated() {
+            if (d === any) {
+                delegates.remove(at: index)
+            }
+        }
+    }
+    
+    var currentVideoId: String?
+    var playerView: UIView?
+    var userPlayerRete: Float = 1.0
+    
+    func generatePlayerView(type: PlayerViewType) -> UIView? {
+    
+        if let player = self.player {
+            player.releasePlayer()
+        }
+        self.player = nil
+        let ccUserId = "ED9742DB71BAEFEF"
+        let ccAPIKey = "ERNcidRowobGEtL4u3i3zx7s6YS9sk1W"
+        let player = BXGVODPlayer()
+        let playerView = player.generatePlayerView(ccUserId: ccUserId, ccAPIKey: ccAPIKey)
+        
+        player.delegate = self;
+        self.playerView = nil;
+        self.player = player
+        self.playerView = playerView
+    
+        self.playerView = playerView;
+        return playerView;
+    }
+    
+    func requestPlay(videoId: String, customId: String, seekTime: Float) {
+        
+        if(currentVideoId == videoId) {
+            return
+        }
+        currentVideoId = nil
+        
+        // 考虑 time did change / bufflingStateDidChange
+        for d in delegates {
+            d.startRequest(playerManager: self)
+        }
+        self.player?.requestPlay(videoId: videoId, customId: customId)
+        currentVideoId = videoId
+    }
+    
+    
+    func requestPlay(videoId: String, path: String?, customId: String, seekTime: Float) {
+        
+        currentVideoId = nil
+        
+        for d in delegates {
+            d.startRequest(playerManager: self)
+        }
+        
+        if let path = path{
+            self.player?.requestPlay(videoId: videoId, path: path, customId: customId, seekTime: seekTime)
+        }else {
+            self.player?.requestPlay(videoId: videoId, customId: customId)
+            
+        }
+        currentVideoId = videoId
+        
+        
+        // 考虑 time did change / bufflingStateDidChange
+        
+        
+    }
+    
+    
+    func pause() {
+        self.player?.pause()
+    }
+    
+    func play() {
+        self.player?.play()
+    }
+
+}
+
+extension BXGVODPlayerManager: BXGVODPlayerDelegate {
+    func rateDidChange(player: BXGVODPlayer, rate: Float) {
+        
+    }
+    
+    func playStateDidChange(player: BXGVODPlayer, isPlaying: Bool) {
+        for d in delegates {
+            d.playStateDidChange(playerManager: self, isPlaying: isPlaying)
+        }
+    }
+    
+    func didReachEnd(player: BXGVODPlayer) {
+        for d in delegates {
+            d.didReachEnd(playerManager: self)
+        }
+    }
+    
+    func requestFailed(player: BXGVODPlayer, error: Error?) {
+        for d in delegates {
+            d.requestFailed(playerManager: self, error: error)
+        }
+    }
+    
+    func didFailed(player: BXGVODPlayer, error: Error?) {
+        for d in delegates {
+            d.didFailed(playerManager: self, error: error)
+        }
+    }
+    
+    func readyToPlay(player: BXGVODPlayer) {
+        // 业务需求 保存速率
+        
+        // TODO: 保存 速率
+//        self.userPlayerRete =
+        
+        for d in delegates {
+            d.readyToPlay(playerManager: self)
+        }
+    }
+    
+    func playTimeDidChage(player: BXGVODPlayer, currentTime: Float, durationTime: Float) {
+        if let _ = self.playerView?.window {
+            
+        }else {
+            self.pause()
+        }
+        for d in delegates {
+            d.playTimeDidChage(playerManager: self, currentTime: currentTime, durationTime: durationTime)
+        }
+        
+    }
+    
+    func loadedTimeDidChage(player: BXGVODPlayer, durationTime: Float) {
+        for d in delegates {
+            d.loadedTimeDidChage(playerManager: self, durationTime: durationTime)
+        }
+    }
+    
+    func bufflingStateDidChange(player: BXGVODPlayer, isBuffling: Bool) {
+        for d in delegates {
+            d.bufflingStateDidChange(playerManager: self, isBuffling: isBuffling)
+        }
+    }
+}

@@ -1,0 +1,259 @@
+//
+//  BXGDownloadAPI.m
+//  Demo
+//
+//  Created by apple on 2018/7/4.
+//  Copyright © 2018年 com.bokecc.www. All rights reserved.
+//
+
+#import "BXGDownloadAPI.h"
+#import "BXGDownloadCC.h"
+#import "BXGDatabaseAPI.h"
+
+#import "BoxueguHD-Swift.h"
+
+@interface BXGDownloadAPI()<BXGDownloadCCDelegate>
+@property (nonatomic, strong) NSMutableArray *arrDownloadObserver;
+@property (nonatomic, strong) BXGDownloadCC *ccDownloader;
+@property (nonatomic, strong) NSMutableDictionary<NSString* /*customId*/, BXGDownloadPersistAPIModel *> *dictAPIDownloadItems;
+@end
+@implementation BXGDownloadAPI
+
++(instancetype)share {
+    static BXGDownloadAPI *downloader;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        downloader = [BXGDownloadAPI new];
+    });
+    return downloader;
+}
+
+-(BXGDownloadCC*)ccDownloader {
+    if(_ccDownloader == nil) {
+        BXGDownloadEnvSource *envSource = [BXGDownloadEnvSource new];
+        _ccDownloader= [[BXGDownloadCC alloc] initWithDownloadDelegate:self andDownloadEvnSource:envSource];
+    }
+    return _ccDownloader;
+}
+
+-(NSMutableArray*)arrDownloadObserver {
+    if(_arrDownloadObserver == nil) {
+        _arrDownloadObserver = [NSMutableArray new];
+    }
+    return _arrDownloadObserver;
+}
+
+-(NSMutableDictionary*)dictAPIDownloadItems {
+    if(_dictAPIDownloadItems == nil) {
+        _dictAPIDownloadItems = [NSMutableDictionary new];
+    }
+    return _dictAPIDownloadItems;
+}
+
+///注册/反注册观察者
+-(void)registerObserver:(id<BXGDownloadCCDelegate>)observer {
+    if([self.arrDownloadObserver indexOfObject:observer] == NSNotFound) {
+        [self.arrDownloadObserver addObject:observer];
+    }
+}
+
+-(void)unregisterObserver:(id<BXGDownloadCCDelegate>)observer {
+    [self.arrDownloadObserver removeObject:observer];
+}
+
+///添加新的下载
+-(void)addDownloadItem:(BXGDownloadAPIModel*)apiDownloadItem {
+    NSString *customId = apiDownloadItem.generateCustomId;
+    //预存储待下载的对象, 方便回调时对数据进行持久化
+    if(![self.dictAPIDownloadItems objectForKey:customId]) {
+        BXGDownloadCCModel *downloadItem = [[BXGDownloadCCModel alloc] initWithCustomId:customId andCCVideoId:apiDownloadItem.ccVideoId];
+        [self.ccDownloader  addDownloadItem:downloadItem];
+        
+        BXGDownloadPersistAPIModel *persistDownloadItem = [[BXGDownloadPersistAPIModel alloc] initWithDownloadItem:apiDownloadItem andDownloadURL:nil andToken:nil andVideoPath:nil andQualityDesp:nil];
+        [self.dictAPIDownloadItems setObject:persistDownloadItem forKey:customId];
+        
+        //资源一旦被添加到下载中,就将信息先在数据库中进行登记
+        [[BXGDatabaseAPI shareInstance] addDownloadItem:persistDownloadItem];
+    }
+}
+
+-(void)addDownloadItems:(NSArray<BXGDownloadAPIModel*>*)apiDownloadItems {
+    for(BXGDownloadAPIModel *item in apiDownloadItems) {
+        [self addDownloadItem:item];
+    }
+}
+
+-(void)start {
+    [self.ccDownloader start];
+}
+
+///启动之前已添加到下载列表但是还没有下完的资源
+-(void)allStartPersisitDownloadItems:(NSArray<BXGDownloadPersistAPIModel*>*)apiPersistDownloadItems {
+    for(BXGDownloadPersistAPIModel *item in apiPersistDownloadItems) {
+        [self startPersisitDownloadItem:item];
+    }
+}
+
+-(void)startPersisitDownloadItem:(BXGDownloadPersistAPIModel*)apiPersistDownloadItem {
+    NSString *customId = [apiPersistDownloadItem.apiDownloaderItem generateCustomId];
+    if(![self.dictAPIDownloadItems objectForKey:customId]) {
+        BXGDownloadCCModel *downloadItem = [[BXGDownloadCCModel alloc] initWithCustomId:customId
+                                                                           andCCVideoId:apiPersistDownloadItem.apiDownloaderItem.ccVideoId
+                                                                         andDownloadURL:apiPersistDownloadItem.downloadURL
+                                                                    andDownloadFilePath:apiPersistDownloadItem.videoPath
+                                                                       andDownloadToken:apiPersistDownloadItem.token
+                                                                 andDownloadQualityDesp:apiPersistDownloadItem.qualityDesp];
+        [self.ccDownloader startDownloadItem:downloadItem];
+        
+        //预存储待下载的对象, 方便回调时对数据进行持久化
+        [self.dictAPIDownloadItems setObject:apiPersistDownloadItem forKey:customId];
+    }
+}
+
+///全部暂停
+-(void)allPauseDownload {
+    [self.ccDownloader allPauseDownload];
+}
+
+///暂停下载指定文件
+-(void)pausePersisitDownloadItem:(BXGDownloadPersistAPIModel*)apiPersistDownloadItem {
+    BXGDownloadCCModel *downloadItem = [[BXGDownloadCCModel alloc] initWithCustomId:[apiPersistDownloadItem.apiDownloaderItem generateCustomId]
+                                                                     andCCVideoId:apiPersistDownloadItem.apiDownloaderItem.ccVideoId
+                                                                   andDownloadURL:apiPersistDownloadItem.downloadURL
+                                                              andDownloadFilePath:apiPersistDownloadItem.videoPath
+                                                                 andDownloadToken:apiPersistDownloadItem.token
+                                                           andDownloadQualityDesp:apiPersistDownloadItem.qualityDesp];
+    [self.ccDownloader pauseDownloadItem:downloadItem];
+}
+///重新下载指定文件
+-(void)resumePersisitDownloadItem:(BXGDownloadPersistAPIModel*)apiPersistDownloadItem {
+    BXGDownloadCCModel *downloadItem = [[BXGDownloadCCModel alloc] initWithCustomId:[apiPersistDownloadItem.apiDownloaderItem generateCustomId]
+                                                                     andCCVideoId:apiPersistDownloadItem.apiDownloaderItem.ccVideoId
+                                                                   andDownloadURL:apiPersistDownloadItem.downloadURL
+                                                              andDownloadFilePath:apiPersistDownloadItem.videoPath
+                                                                 andDownloadToken:apiPersistDownloadItem.token
+                                                           andDownloadQualityDesp:apiPersistDownloadItem.qualityDesp];
+    [self.ccDownloader resumeDownloadItem:downloadItem];
+}
+
+///取消下载指定文件
+-(void)cancelPersisitDownloadItem:(BXGDownloadPersistAPIModel*)apiPersistDownloadItem {
+    NSString *customId = [apiPersistDownloadItem.apiDownloaderItem generateCustomId];
+    BXGDownloadCCModel *downloadItem = [[BXGDownloadCCModel alloc] initWithCustomId:customId
+                                                                     andCCVideoId:apiPersistDownloadItem.apiDownloaderItem.ccVideoId
+                                                                   andDownloadURL:apiPersistDownloadItem.downloadURL
+                                                              andDownloadFilePath:apiPersistDownloadItem.videoPath
+                                                                 andDownloadToken:apiPersistDownloadItem.token
+                                                           andDownloadQualityDesp:apiPersistDownloadItem.qualityDesp];
+    [self.ccDownloader cancelDownloadItem:downloadItem];
+    
+    //删除下载中的对象
+    if([self.dictAPIDownloadItems objectForKey:customId]) {
+        [self.dictAPIDownloadItems removeObjectForKey:customId];
+    }
+}
+
+-(void)cancelPersisitDownloadItems:(NSArray<BXGDownloadPersistAPIModel*>*)apiPersistDownloadItems {
+    for(BXGDownloadPersistAPIModel *item in apiPersistDownloadItems) {
+        [self cancelPersisitDownloadItem:item];
+    }
+}
+
+#pragma mark -- BXGDownloadCCDelegate
+-(NSString*)generateDownloadPathByFileName:(NSString*)fileName {
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documentDirectory = [paths objectAtIndex:0];
+    NSString *filePath = [documentDirectory stringByAppendingPathComponent:fileName];
+    return filePath;
+}
+
+-(void)downloadProgressForDownloadItem:(BXGDownloadCCModel*)ccDownloadItem {
+    
+    NSLog(@"api progress=%lf, downloadState=%ld", ccDownloadItem.progress, ccDownloadItem.downloadState);
+    //调用存储对象 todo
+    
+//    BXGDownloadPersistAPIModel *persistDownloadItem = [self.dictAPIDownloadItems objectForKey:ccDownloadItem.customId];
+//    persistDownloadItem.downloadURL = ccDownloadItem.downloadURL;
+//    persistDownloadItem.token = ccDownloadItem.token;
+//    persistDownloadItem.videoPath = ccDownloadItem.videoPath;
+//    persistDownloadItem.qualityDesp = ccDownloadItem.desp;
+//    persistDownloadItem.downloadState = ccDownloadItem.downloadState;
+//    persistDownloadItem.totalBytesWritten = ccDownloadItem.totalBytesWritten;
+//    persistDownloadItem.totalBytesExpectedToWrite = ccDownloadItem.totalBytesExpectedToWrite;
+//    persistDownloadItem.progress = ccDownloadItem.progress;
+//    persistDownloadItem.speed = ccDownloadItem.speed;
+    BXGDownloadPersistAPIModel *persistDownloadItem =  [self updateDownloadInfoByCCDownloadItem:ccDownloadItem];
+    for(id<BXGDownloadAPIDelegate> observer in self.arrDownloadObserver) {
+        if(persistDownloadItem &&
+           ([observer respondsToSelector:@selector(downloadProgressForAPIPersisitDownloadItem:)])) {
+            //通知观察者
+            [observer downloadProgressForAPIPersisitDownloadItem:persistDownloadItem];
+        }
+    }
+
+    if(persistDownloadItem) {
+        //每下载1M写入一次数据库
+        static int64_t sumTotalBytesWritten=0;
+        if(sumTotalBytesWritten+1024*1024<=persistDownloadItem.totalBytesWritten)
+        {
+            sumTotalBytesWritten = persistDownloadItem.totalBytesWritten;
+            [[BXGDatabaseAPI shareInstance] addDownloadItem:persistDownloadItem];
+        }
+    }
+}
+
+-(BXGDownloadPersistAPIModel*)updateDownloadInfoByCCDownloadItem:(BXGDownloadCCModel*)ccDownloadItem {
+    BXGDownloadPersistAPIModel *persistDownloadItem = [self.dictAPIDownloadItems objectForKey:ccDownloadItem.customId];
+    if(persistDownloadItem) {
+        persistDownloadItem.downloadURL = ccDownloadItem.downloadURL;
+        persistDownloadItem.token = ccDownloadItem.token;
+        persistDownloadItem.videoPath = ccDownloadItem.videoPath;
+        persistDownloadItem.qualityDesp = ccDownloadItem.desp;
+        persistDownloadItem.downloadState = ccDownloadItem.downloadState;
+        persistDownloadItem.totalBytesWritten = ccDownloadItem.totalBytesWritten;
+        persistDownloadItem.totalBytesExpectedToWrite = ccDownloadItem.totalBytesExpectedToWrite;
+        persistDownloadItem.progress = ccDownloadItem.progress;
+        persistDownloadItem.speed = ccDownloadItem.speed;
+    }
+    return persistDownloadItem;
+}
+
+-(void)downloadStateForDownloadItem:(BXGDownloadCCModel*)ccDownloadItem andError:(NSError*)error {
+    
+    BXGDownloadPersistAPIModel *persistDownloadItem =  [self updateDownloadInfoByCCDownloadItem:ccDownloadItem];
+    
+    for(id<BXGDownloadAPIDelegate> item in self.arrDownloadObserver) {
+        if(persistDownloadItem &&
+           ([item respondsToSelector:@selector(downloadStateForAPIPersistDownloadItem:andError:)]) ) {
+            [item downloadStateForAPIPersistDownloadItem:persistDownloadItem andError:error];
+        }
+    }
+
+    NSLog(@"api progress=%lf, state=%ld", ccDownloadItem.progress, ccDownloadItem.downloadState);
+    //对象取消持久化处理
+    if(ccDownloadItem.downloadState==BXGDownloadStateCompleted) {
+        NSLog(@"api progress=%lf, state=complete, persistDownloadItem.progress=%lf, pState=%ld", ccDownloadItem.progress, persistDownloadItem.progress, persistDownloadItem.downloadState);
+        [[BXGDatabaseAPI shareInstance] addDownloadItem:persistDownloadItem];
+        [self.dictAPIDownloadItems removeObjectForKey:ccDownloadItem.customId];
+    }
+}
+
+-(void)requestDownloadURLFailForCustomId:(NSString*)customId andErrorReason:(NSString*)errorReason {
+    
+    BXGDownloadPersistAPIModel *persistDownloadItem = [self.dictAPIDownloadItems objectForKey:customId];
+    for(id<BXGDownloadAPIDelegate> item in self.arrDownloadObserver) {
+        if(persistDownloadItem && [item respondsToSelector:@selector(requestDownloadURLFailForAPIPersistDownloadItem:andErrorReason:)]) {
+            [item requestDownloadURLFailForAPIPersistDownloadItem:persistDownloadItem andErrorReason:errorReason];
+        }
+    }
+    
+    //从数据库中将对象删除todo
+    
+    //对象取消持久化处理
+    if([self.dictAPIDownloadItems objectForKey:customId]) {
+        [self.dictAPIDownloadItems removeObjectForKey:customId];
+    }
+}
+
+
+@end

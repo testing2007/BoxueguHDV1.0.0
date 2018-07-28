@@ -1,0 +1,255 @@
+//
+//  BXGDownloadSelectVC.swift
+//  BoxueguHD
+//
+//  Created by apple on 2018/7/18.
+//  Copyright © 2018年 itcast. All rights reserved.
+//
+
+import UIKit
+
+protocol BXGDownloadSelectVCDelegate : AnyObject {
+    func onConfirmDownload(model:BXGCourseOutlineModuleModel?) -> Void;
+}
+
+class BXGDownloadSelectVC: UIViewController {
+
+    var viewModel:BXGDownloadSelectViewModel;
+    weak var selectVCDelegate:BXGDownloadSelectVCDelegate?
+    
+    init(moduleModel:BXGCourseOutlineModuleModel, selectVCDelegate:BXGDownloadSelectVCDelegate?) {
+        self.selectVCDelegate = selectVCDelegate
+        self.viewModel = BXGDownloadSelectViewModel(moduleModel: moduleModel)
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        // Do any additional setup after loading the view.
+        self.title = self.viewModel.moduleModel.moduleName;
+        self.installUI();
+    }
+
+    override func didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+        // Dispose of any resources that can be recreated.
+    }
+    
+    func installUI() {
+        self.view.addSubview(self.tableView)
+        self.view.addSubview(self.bottomView)
+        
+        self.bottomView.snp.makeConstraints { (make) in
+            make.left.right.bottom.equalToSuperview()
+            make.height.equalTo(49)
+        }
+        self.tableView.snp.makeConstraints { (make) in
+            make.bottom.equalTo(self.bottomView.snp.top).offset(0)
+            make.left.right.top.equalTo(0);
+        }
+    }
+    
+    lazy var bottomView:BXGDownloadSelectBottomView = {
+        let bottomView:BXGDownloadSelectBottomView = BXGDownloadSelectBottomView()
+        bottomView.delegate = self;
+        bottomView.backgroundColor = UIColor.hexColor(hex: 0xFFFFFF)
+        bottomView.layer.shadowColor = UIColor.black.cgColor
+        bottomView.layer.shadowOffset = CGSize(width: 10, height: -8)
+        bottomView.layer.shadowOpacity = 0.04
+        bottomView.totalAndAvailableSpaceLabel.text = String(format:"总空间%@, 可用空间%@", BXGSystemManager.totalSizeInString(), BXGSystemManager.freeSizeInString())
+        return bottomView;
+    }()
+    
+    lazy var tableView:UITableView = {
+        let tableView:UITableView = UITableView(frame: CGRect.zero, style: UITableViewStyle.plain)
+        tableView.delegate = self
+        tableView.dataSource = self
+        tableView.backgroundColor = UIColor.hexColor(hex: 0xFFFFFF)
+        tableView.separatorColor = UIColor.hexColor(hex: 0xF5F5F5)
+        tableView.rowHeight = 44
+        tableView.sectionHeaderHeight = 44
+        tableView.separatorStyle = .singleLine;
+        tableView.register(BXGDownloadSelectCell.self,
+                           forCellReuseIdentifier: BXGDownloadSelectCell.description())
+        tableView.register(BXGDownloadSelectHeaderView.self,
+                           forHeaderFooterViewReuseIdentifier: BXGDownloadSelectHeaderView.description())
+        return tableView;
+    }()
+}
+
+extension BXGDownloadSelectVC : UITableViewDelegate {
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let cell:BXGDownloadSelectCell = tableView.cellForRow(at: indexPath) as! BXGDownloadSelectCell;
+        
+        if (self.viewModel.isSelItemCellInSection(cellId: cell.identifier!, sectionId: cell.sectionId!)) {
+            self.viewModel.removeSelItemCellInSection(cellId: cell.identifier!, sectionId: cell.sectionId!)
+            cell.bSel = false
+        } else {
+            self.viewModel.addSelItemCellInSection(cellId:cell.identifier!, sectionId:cell.sectionId!)
+            cell.bSel = true
+        }
+    }
+}
+
+extension BXGDownloadSelectVC : UITableViewDataSource {
+    func numberOfSections(in tableView: UITableView) -> Int {
+        if let sectionItems = self.viewModel.moduleModel.sectionItems {
+            return sectionItems.count;
+        } else {
+            return 0;
+        }
+    }
+    
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        if(self.viewModel.isOpenHeadSection(sectionId: section)) {
+            if let sectionItems = self.viewModel.moduleModel.sectionItems {
+                if(section>=sectionItems.count) {
+                    return 0
+                }
+                if let pointItems = sectionItems[section].pointItems {
+                    return pointItems.count;
+                } else {
+                    return 0
+                }
+            } else {
+                return 0
+            }
+        } else {
+            return 0
+        }
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell:BXGDownloadSelectCell = tableView.dequeueReusableCell(withIdentifier: BXGDownloadSelectCell.description(), for: indexPath) as! BXGDownloadSelectCell
+        cell.delegate = self;
+        cell.sectionId = indexPath.section;
+        cell.identifier = indexPath.row;
+        if(self.viewModel.isSelItemCellInSection(cellId: cell.identifier!, sectionId: cell.sectionId!)) {
+            cell.bSel = true
+        } else {
+            cell.bSel = false
+        }
+        let sectionModel:BXGCourseOutlineSectionModel = self.viewModel.moduleModel.sectionItems![indexPath.section];
+        let pointModel:BXGCourseOutlinePointModel? = sectionModel.pointItems?[indexPath.row];
+        cell.videoNameLabel.text = pointModel?.pointName
+        return cell;
+    }
+    
+    func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
+        let headerView:BXGDownloadSelectHeaderView = tableView.dequeueReusableHeaderFooterView(withIdentifier: BXGDownloadSelectHeaderView.description()) as! BXGDownloadSelectHeaderView;
+        if section < (self.viewModel.moduleModel.sectionItems?.count ?? 0) {
+            headerView.delegate = self;
+            headerView.isOpen = self.viewModel.isOpenHeadSection(sectionId: section);
+            headerView.sectionId = section;
+            
+            //        if let sectionModels = self.viewModel.moduleModel.sectionItems,
+            //            let sectionModel = sectionModels[section] {
+            //                headerView.sectionLabel.text = sectionModel.sectionName;
+            //            }
+            
+            let sectionModel:BXGCourseOutlineSectionModel = self.viewModel.moduleModel.sectionItems![section]
+            headerView.sectionLabel.text = sectionModel.sectionName;
+        }
+        return headerView;
+    }
+}
+
+extension BXGDownloadSelectVC : BXGDownloadSelectHeaderViewDelegate {
+    func openSection(sectionId:Int) -> Void {
+        self.viewModel.addOpenHeadSectionId(sectionId: sectionId)
+        self.tableView.reloadSections(IndexSet.init(integer: sectionId), with: UITableViewRowAnimation.automatic)
+    }
+    
+    func closeSection(sectionId:Int) -> Void {
+        self.viewModel.removeOpenHeadSectionId(sectionId: sectionId)
+        self.tableView.reloadSections(IndexSet.init(integer: sectionId), with: UITableViewRowAnimation.automatic)
+    }
+}
+
+extension BXGDownloadSelectVC : BXGDownloadSelectCellDelegate {
+    func onSelectOptionItem(bSelected: Bool, cellItem: BXGDownloadSelectCell) {
+        if(bSelected) {
+            self.viewModel.addSelItemCellInSection(cellId: cellItem.identifier!, sectionId: cellItem.sectionId!)
+        } else {
+            self.viewModel.removeSelItemCellInSection(cellId: cellItem.identifier!, sectionId: cellItem.sectionId!)
+        }
+    }
+
+}
+
+extension BXGDownloadSelectVC : BXGDownloadSelectBottomViewDelegate {
+    func onConfirmDownload() -> Void {
+        NSLog("onConfirmDownload")
+        if(self.viewModel.selItemsDictInSection.count > 0) {
+//            var allKeys:Dictionary<Int, Set<Int>>.Keys = self.viewModel.selItemsDictInSection.keys
+//            for sectionId in allKeys {
+//                var keyValues:Set<Int> = self.viewModel.selItemsDictInSection[sectionId]!
+//                //                var sectionModel:BXGCourseOutlineSectionModel = self.viewModel.moduleModel.sectionItems![sectionId];
+//                for pointId in keyValues {
+//                    self.viewModel.moduleModel.sectionItems![sectionId].pointItems?.remove(at: pointId)
+//                }
+//                if((self.viewModel.moduleModel.sectionItems![sectionId].pointItems?.count)!<=0) {
+//                    self.viewModel.moduleModel.sectionItems?.remove(at: sectionId)
+//                }
+//            }
+            let newCourseOutlineModuleModel:BXGCourseOutlineModuleModel = BXGCourseOutlineModuleModel();
+            newCourseOutlineModuleModel.moduleId = self.viewModel.moduleModel.moduleId;
+            newCourseOutlineModuleModel.nextType = self.viewModel.moduleModel.nextType;
+            newCourseOutlineModuleModel.nextModuleId = self.viewModel.moduleModel.nextModuleId;
+            newCourseOutlineModuleModel.phaseHomeworkId = self.viewModel.moduleModel.phaseHomeworkId;
+            newCourseOutlineModuleModel.phaseHomeworkStatus = self.viewModel.moduleModel.phaseHomeworkStatus;
+            newCourseOutlineModuleModel.phaseId = self.viewModel.moduleModel.phaseId;
+            newCourseOutlineModuleModel.moduleName = self.viewModel.moduleModel.moduleName;
+            newCourseOutlineModuleModel.sort = self.viewModel.moduleModel.sort;
+            newCourseOutlineModuleModel.phaseSort = self.viewModel.moduleModel.phaseSort;
+            newCourseOutlineModuleModel.mentId = self.viewModel.moduleModel.mentId;
+            newCourseOutlineModuleModel.mentName = self.viewModel.moduleModel.mentName;
+            newCourseOutlineModuleModel.duration = self.viewModel.moduleModel.duration;
+            newCourseOutlineModuleModel.sectionItems = Array<BXGCourseOutlineSectionModel>()
+
+            let allKeys:Dictionary<Int, Set<Int>>.Keys = self.viewModel.selItemsDictInSection.keys
+            for sectionId in allKeys {
+
+                let sectionModel:BXGCourseOutlineSectionModel = self.viewModel.moduleModel.sectionItems![sectionId];
+                let itemSection:BXGCourseOutlineSectionModel = BXGCourseOutlineSectionModel()
+                itemSection.sectionId = sectionModel.sectionId
+                itemSection.sectionName = sectionModel.sectionName
+                itemSection.parentId = sectionModel.parentId
+                itemSection.isPass = sectionModel.isPass
+                itemSection.sort = sectionModel.sort
+                itemSection.isSectionTest = sectionModel.isSectionTest
+                itemSection.isHomework = sectionModel.isHomework
+                itemSection.sectionTestStatus = sectionModel.sectionTestStatus
+                itemSection.pointItems = Array<BXGCourseOutlinePointModel>()
+                
+                newCourseOutlineModuleModel.sectionItems?.append(itemSection)
+
+                let keyValues:Set<Int> = self.viewModel.selItemsDictInSection[sectionId]!
+                for pointId in keyValues {
+                    let pointModel:BXGCourseOutlinePointModel = sectionModel.pointItems![pointId]
+                    let itemPoint:BXGCourseOutlinePointModel = BXGCourseOutlinePointModel()
+                    itemPoint.pointId = pointModel.pointId;
+                    itemPoint.pointName = pointModel.pointName;
+                    itemPoint.parentId = pointModel.parentId;
+                    itemPoint.sort = pointModel.sort;
+                    itemPoint.videoId = pointModel.videoId
+                    itemPoint.ccVideoId = pointModel.ccVideoId;
+                    itemPoint.studyStatus = pointModel.studyStatus;
+                    itemPoint.videoH5Url = pointModel.videoH5Url;
+                    
+                    itemSection.pointItems?.append(itemPoint)
+                }
+            }
+            
+            self.selectVCDelegate?.onConfirmDownload(model: newCourseOutlineModuleModel)
+
+        } else {
+            self.selectVCDelegate?.onConfirmDownload(model: nil)
+        }
+    }
+}
+

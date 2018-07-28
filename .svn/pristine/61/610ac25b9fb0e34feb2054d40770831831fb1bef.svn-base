@@ -1,0 +1,379 @@
+//
+//  BXGNetworkManager.swift
+//  BoxueguHD
+//
+//  Created by Renying Wu on 2018/7/10.
+//  Copyright © 2018年 itcast. All rights reserved.
+//
+
+import UIKit
+
+import Alamofire
+extension Notification.Name {
+    struct Network {
+        public static let Unauthorized = Notification.Name(rawValue: "com.itcast.boxuegu.notification.name.network.unauthorized")
+        public static let ReachabilityDidChange = Notification.Name(rawValue: "com.itcast.boxuegu.notification.name.network.reachabilitydidchange")
+    }
+}
+
+public enum BXGNetworkReachabilityStatus {
+    case unknown
+    case notReachable
+    case reachable(BXGConnectionType)
+}
+
+public enum BXGConnectionType {
+    case ethernetOrWiFi
+    case wwan
+}
+
+extension Notification {
+    struct Key {
+        public static let Reachability = "com.itcast.boxuegu.notification.key.reachability"
+    }
+}
+
+//extension Notification.Name {
+//    struct reachability {
+//        public static let Unknown = Notification.Name(rawValue: "com.itcast.boxuegu.notification.name.network.unauthorized")
+//        public static let NotReachable = Notification.Name(rawValue: "com.itcast.boxuegu.notification.name.network.unauthorized")
+//        public static let Unknown = Notification.Name(rawValue: "com.itcast.boxuegu.notification.name.network.unauthorized")
+//        public static let Unknown = Notification.Name(rawValue: "com.itcast.boxuegu.notification.name.network.unauthorized")
+//
+//        public enum NetworkReachabilityStatus {
+//            case unknown
+//            case notReachable
+//            case reachable(ConnectionType)
+//        }
+//        case ethernetOrWiFi
+//        case wwan
+//
+//
+//    }
+//}
+
+
+enum BXGNetworkEnvironment: String {
+
+    case developmentApp             = "http://portal-api-d1.boxuegu.com/"           // 研发 App服务
+    case developmentUserCenter      = "http://online-dev.boxuegu.com/"              // 研发 User服务
+    case developmentQALibCenter     = "http://qalib-center-d.boxuegu.com/"          // 研发 问答精灵服务
+    case developmentQALibAPI        = "http://qalib-api-d.boxuegu.com/"          // 研发 问答库服务
+    case developmentConsult         = "http://consult-d.boxuegu.com/" // 研发 咨询服务(内网)
+    
+    case testApp01IP                = "http://211.103.142.26:5881/" // 测试 AppIP服务(外网 Test1)
+    case testApp01                  = "http://proxy.boxuegu.com/portal-api-test/" // 测试 App服务(外网 Test1)
+    case testApp02                  = "http://proxy.boxuegu.com/portal-api-test1/" // 测试 App服务(外网 Test2)
+    case testApp02Local             = "http://portal-api-t1.boxuegu.com/" // 测试 h5服务(内网 Test2)
+    
+    case testConsult                = "http://consult-t.boxuegu.com/" // 测试 咨询服务(内网)
+    case testQALibCenter            = "http://qalib-center-t.boxuegu.com/" // 测试 问答精灵服务(内网)
+    case testQALibAPI               = "http://qalib-api-t.boxuegu.com/"              // 测试 问答库服务(内网)
+    
+    case prepropuctApp              = "http://api-ysc.bxg.boxuegu.com/"              // 预生产 App服务
+    case prepropuctQALibCenter      = "http://ask-center-ysc.bxg.boxuegu.com/"        // 预生产 问答精灵服务
+    case prepropuctQALibAPI         = "http://ask-api-ysc.bxg.boxuegu.com/"           // 预生产 问答库服务
+    
+    case releaseApp                 = "https://app.boxuegu.com/"                     // 正式 App服务
+    case releaseConsult             = "https://app.boxuegu.com/consult/"             // 正式 咨询服务
+    case releaseQALibCenter         = "https://ask-center.boxuegu.com/"               // 正式 问答精灵服务
+    case releaseQALibAPI            = "https://qa.boxuegu.com/api/"                   // 正式 问答库服务
+    
+    case prepropuctAppIPLocal       = "http://172.16.1.35:8258/"                     // 预生产 App服务(内网)
+    case testLocal01                = "http://online-test.boxuegu.com/"              // 测试 App服务(内网 Test1)
+    case testLocal02                = "http://online-test2.boxuegu.com/"             // 测试 App服务(内网 Test2)
+}
+
+//#define BXG_NETWORK_URL_APP                 BXG_NETWORK_ENV_TEST_API_01
+//#define BXG_NETWORK_URL_BBS                 BXG_NETWORK_ENV_TEST_API_01
+//#define BXG_NETWORK_URL_CONSULT             BXG_NETWORK_ENV_TEST_CONSULT
+//#define BXG_NETWORK_URL_QALIB_CENTER        BXG_NETWORK_ENV_TEST_QALIB_CENTER
+//#define BXG_NETWORK_URL_QALIB_API           BXG_NETWORK_ENV_TEST_QALIB_API
+//#define BXG_NETWORK_URL_NOTE                BXG_NETWORK_ENV_TEST_API_01
+//#define BXG_NETWORK_URL_USER                BXG_NETWORK_ENV_TEST_API_01
+//#define BXG_NETWORK_URL_H5                  BXG_NETWORK_ENV_TEST_API_01
+
+enum BXGNetworkBaseURL {
+    
+    case app
+    case bbs
+    case consult
+    case qalibCenter
+    case qalibAPI
+    case note
+    case user
+    case h5
+
+    public var baseURL: URL {
+        return URL(string: self.baseURLString)!
+    }
+    
+    #if BXG_SCHEME_DEVELOPMENT
+    public var baseURLString: String {
+        switch self {
+        case .app:
+            return BXGNetworkEnvironment.developmentApp.rawValue
+        case .bbs:
+            return BXGNetworkEnvironment.developmentApp.rawValue
+        case .consult:
+            return BXGNetworkEnvironment.developmentConsult.rawValue
+        case .qalibCenter:
+            return BXGNetworkEnvironment.developmentQALibCenter.rawValue
+        case .qalibAPI:
+            return BXGNetworkEnvironment.developmentQALibAPI.rawValue
+        case .note:
+            return BXGNetworkEnvironment.developmentApp.rawValue
+        case .user:
+            return BXGNetworkEnvironment.developmentApp.rawValue
+        case .h5:
+            return BXGNetworkEnvironment.developmentApp.rawValue
+        }
+    }
+    #endif
+    
+    #if BXG_SCHEME_TEST1
+    public var baseURLString: String {
+        switch self {
+        case .app:
+            return BXGNetworkEnvironment.testApp01.rawValue
+        case .bbs:
+            return BXGNetworkEnvironment.testApp01.rawValue
+        case .consult:
+            return BXGNetworkEnvironment.testConsult.rawValue
+        case .qalibCenter:
+            return BXGNetworkEnvironment.testQALibCenter.rawValue
+        case .qalibAPI:
+            return BXGNetworkEnvironment.testQALibAPI.rawValue
+        case .note:
+            return BXGNetworkEnvironment.testApp01.rawValue
+        case .user:
+            return BXGNetworkEnvironment.testApp01.rawValue
+        case .h5:
+            return BXGNetworkEnvironment.testApp01.rawValue
+        }
+    }
+    #endif
+    
+    #if BXG_SCHEME_TEST2
+    public var baseURLString: String {
+        switch self {
+        case .app:
+            return BXGNetworkEnvironment.testApp02Local.rawValue
+        case .bbs:
+            return BXGNetworkEnvironment.testApp02Local.rawValue
+        case .consult:
+            return BXGNetworkEnvironment.testConsult.rawValue
+        case .qalibCenter:
+            return BXGNetworkEnvironment.testQALibCenter.rawValue
+        case .qalibAPI:
+            return BXGNetworkEnvironment.testQALibAPI.rawValue
+        case .note:
+            return BXGNetworkEnvironment.testApp02Local.rawValue
+        case .user:
+            return BXGNetworkEnvironment.testApp02Local.rawValue
+        case .h5:
+            return BXGNetworkEnvironment.testApp02Local.rawValue
+        }
+    }
+    #endif
+    
+    #if BXG_SCHEME_PRE_PRODUCT
+    public var baseURLString: String {
+        switch self {
+        case .app:
+            return BXGNetworkEnvironment.prepropuctApp.rawValue
+        case .bbs:
+            return BXGNetworkEnvironment.prepropuctApp.rawValue
+        case .consult:
+            return BXGNetworkEnvironment.prepropuctApp.rawValue // 待验证
+        case .qalibCenter:
+            return BXGNetworkEnvironment.prepropuctQALibCenter.rawValue
+        case .qalibAPI:
+            return BXGNetworkEnvironment.prepropuctQALibAPI.rawValue
+        case .note:
+            return BXGNetworkEnvironment.prepropuctApp.rawValue
+        case .user:
+            return BXGNetworkEnvironment.prepropuctApp.rawValue
+        case .h5:
+            return BXGNetworkEnvironment.prepropuctApp.rawValue
+        }
+    }
+    #endif
+    
+    #if BXG_SCHEME_RELEASE
+    public var baseURLString: String {
+        switch self {
+        case .app:
+            return BXGNetworkEnvironment.releaseApp.rawValue
+        case .bbs:
+            return BXGNetworkEnvironment.releaseApp.rawValue
+        case .consult:
+            return BXGNetworkEnvironment.releaseConsult.rawValue // 待验证
+        case .qalibCenter:
+            return BXGNetworkEnvironment.releaseQALibCenter.rawValue
+        case .qalibAPI:
+            return BXGNetworkEnvironment.releaseQALibAPI.rawValue
+        case .note:
+            return BXGNetworkEnvironment.releaseApp.rawValue
+        case .user:
+            return BXGNetworkEnvironment.releaseApp.rawValue
+        case .h5:
+            return BXGNetworkEnvironment.releaseApp.rawValue
+        }
+    }
+    #endif
+}
+
+
+//#define BXG_NETWORK_ENV_DEVELOPMENT                                 @"http://portal-api-d1.boxuegu.com/"            // 研发 App服务
+//#define BXG_NETWORK_ENV_DEVELOPMENT_USER_CENTER                     @"http://online-dev.boxuegu.com/"               // 研发 User服务
+//#define BXG_NETWORK_ENV_DEVELOPMENT_QALIB_CENTER                    @"http://qalib-center-d.boxuegu.com/"           // 研发 问答精灵服务
+//#define BXG_NETWORK_ENV_DEVELOPMENT_QALIB_API                       @"http://qalib-api-d.boxuegu.com/"              // 研发 问答库服务
+//#define BXG_NETWORK_ENV_DEVELOPMENT_CONSULT                         @"http://consult-d.boxuegu.com/"                // 研发 咨询服务(内网)
+
+////#define BXG_NETWORK_ENV_TEST_API_01                              @"http://211.103.142.26:5881/"                  // 测试 AppIP服务(外网 Test1)
+//#define BXG_NETWORK_ENV_TEST_API_01                                 @"http://proxy.boxuegu.com/portal-api-test/"    // 测试 App服务(外网 Test1)
+//#define BXG_NETWORK_ENV_TEST_API_02                                 @"http://proxy.boxuegu.com/portal-api-test1/"   // 测试 App服务(外网 Test2)
+//#define BXG_NETWORK_ENV_TEST_API_LOCAL_02                           @"http://portal-api-t1.boxuegu.com/"            // 测试 h5服务(内网 Test2)
+
+//#define BXG_NETWORK_ENV_TEST_CONSULT                                @"http://consult-t.boxuegu.com/"                // 测试 咨询服务(内网)
+//#define BXG_NETWORK_ENV_TEST_QALIB_CENTER                           @"http://qalib-center-t.boxuegu.com/"           // 测试 问答精灵服务(内网)
+//#define BXG_NETWORK_ENV_TEST_QALIB_API                              @"http://qalib-api-t.boxuegu.com/"              // 测试 问答库服务(内网)
+
+//#define BXG_NETWORK_ENV_PRE_PRODUCT                                 @"http://api-ysc.bxg.boxuegu.com/"              // 预生产 App服务
+//#define BXG_NETWORK_ENV_PRE_PREDUCT_QALIB_CENTER                    @"http://ask-center-ysc.bxg.boxuegu.com/"        // 预生产 问答精灵服务
+//#define BXG_NETWORK_ENV_PRE_PREDUCT_QALIB_API                       @"http://ask-api-ysc.bxg.boxuegu.com/"           // 预生产 问答库服务
+
+//#define BXG_NETWORK_ENV_RELEASE                                     @"https://app.boxuegu.com/"                     // 正式 App服务
+//#define BXG_NETWORK_ENV_RELEASE_CONSULT                             @"https://app.boxuegu.com/consult/"             // 正式 咨询服务
+////#define BXG_NETWORK_ENV_RELEASE_QALIB_CENTER                        @"https://ask-center.boxuegu.com/"               // 正式 问答精灵服务
+//#define BXG_NETWORK_ENV_RELEASE_QALIB_CENTER                        @"https://qa.boxuegu.com/"               // 正式 问答精灵服务
+//#define BXG_NETWORK_ENV_RELEASE_QALIB_API                           @"https://qa.boxuegu.com/api/"                   // 正式 问答库服务
+//
+//#define BXG_NETWORK_ENV_PRE_PRODUCT_LOCAL                           @"http://172.16.1.35:8258/"                     // 预生产 App服务(内网)
+//#define BXG_NETWORK_ENV_TEST_LOCAL_01                               @"http://online-test.boxuegu.com/"              // 测试 App服务(内网 Test1) 感觉已废弃
+//#define BXG_NETWORK_ENV_TEST_LOCAL_02                               @"http://online-test2.boxuegu.com/"             // 测试 App服务(内网 Test2) 感觉已废弃
+//#define BXG_NETWORK_ENV_DEVELOPMENT_QALIB_CENTER_DEPRECATED         @"http://portal-api-d1.boxuegu.com/ask-d/"      // 研发 问答精灵服务(过期)
+//#define BXG_NETWORK_ENV_DEVELOPMENT_QALIB_API_DEPRECATED            @"http://portal-api-d1.boxuegu.com/ask-api-d/"  // 研发 问答库服务(过期)
+//#define BXG_NETWORK_ENV_TEST_QALIB_CENTER_DEPRECATED                @"http://portal-api-d1.boxuegu.com/ask-t/"      // 测试 问答精灵服务(过期)
+//#define BXG_NETWORK_ENV_TEST_QALIB_API_DEPRECATED                   @"http://portal-api-d1.boxuegu.com/ask-api-t/"  // 测试 问答库服务(过期)
+
+let shared = BXGNetworkManager()
+
+class BXGRPulginType: BXGNetworkPulginType {
+    func didReceive(response: NetworkResponse) {
+        switch response {
+        case .success(let status, _, _):
+            if status == 401 {
+                NotificationCenter.default.post(name: NSNotification.Name.Network.Unauthorized,
+                                                object: nil,
+                                                userInfo: nil
+                )
+            }
+        case .failure( _):break;
+        }
+        
+    }
+}
+
+class BXGNetworkManager {
+    
+    init() {
+        NotificationCenter.default.addObserver(forName: NSNotification.Name.Network.Unauthorized, object: nil, queue: nil) { (noti) in
+            print("401")
+        }
+    }
+    class func request<Target: BXGTargetType>(api:Target, response: @escaping (NetworkResponse) -> ()) {
+        
+        
+        
+        let provider = BXGProvider<Target>();
+        provider.delegate = shared
+        provider.request(api: api, response: response, plugins: [BXGRPulginType()])
+    }
+}
+let reachbilityManager = BXGReachabilityManager()
+class BXGReachabilityManager {
+    
+    public static var shared: BXGReachabilityManager {
+        return reachbilityManager
+        
+    }
+    
+    var reachabilityManager: NetworkReachabilityManager = {
+        let manager = NetworkReachabilityManager()
+        
+        manager!.listener = { status in
+            
+            var bxgstatus = BXGNetworkReachabilityStatus.unknown
+            switch status {
+            case .unknown:
+                bxgstatus = BXGNetworkReachabilityStatus.unknown
+            case .notReachable:
+                bxgstatus = BXGNetworkReachabilityStatus.notReachable
+            case let .reachable(type):
+                switch type {
+                    
+                case .ethernetOrWiFi:
+                    bxgstatus = BXGNetworkReachabilityStatus.reachable(.ethernetOrWiFi)
+                case .wwan:
+                    bxgstatus = BXGNetworkReachabilityStatus.reachable(.wwan)
+                }
+            }
+        
+    
+            NotificationCenter.default.post(name: NSNotification.Name.Network.ReachabilityDidChange, object: nil, userInfo: [Notification.Key.Reachability: bxgstatus])
+            
+            
+            
+        }
+        manager?.startListening()
+        return manager!
+    }()
+}
+
+
+
+
+extension BXGNetworkManager: BXGProviderDelegate {
+    
+    var commonParameter: [String : Any]? {
+        
+        var dict: [String: String] = [String: String]()
+        
+        dict["device"] = "ios-pad"
+        dict["imei"] = (UIDevice.current.identifierForVendor?.uuidString) ?? ""
+        dict["os"] = "ios"
+        
+        // 添加 user id sign 等参数
+        if let userModel = BXGUserCenter.shared.userModel {
+            dict["user_id"] = userModel.user_id
+            dict["sign"] = userModel.sign
+            dict["itcast_uuid"] = userModel.itcast_uuid
+            
+            // app2
+            dict["studentId"] = userModel.user_id
+        }
+        
+        return dict
+    }
+    
+    var commonHeader: [String : String]? {
+        
+        if let info = Bundle.main.infoDictionary, let version = info["CFBundleShortVersionString"] as? String {
+            return ["bxg-os": "iOS",
+//                    "bxg-platform":"iPad",
+                    "bxg-platform":"iPhone",
+                    "bxg-version": version]
+        }else {
+            return nil
+        }
+        
+    }
+    
+
+    
+
+    
+    
+}

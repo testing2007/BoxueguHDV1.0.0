@@ -1,0 +1,76 @@
+//
+//  BXGConstrueLiveModel.swift
+//  BoxueguHD
+//
+//  Created by Renying Wu on 2018/7/24.
+//  Copyright © 2018年 itcast. All rights reserved.
+//
+
+import Foundation
+import ObjectMapper
+class BXGConstrueLiveModel: Mappable {
+    required init?(map: Map) {
+        
+    }
+    
+    func mapping(map: Map) {
+        duration <- map["duration"]
+        teacher <- map["teacher"]
+        onAir <- map["onAir"]
+        name <- map["name"]
+        isCallBack <- map["isCallBack"]
+        recommend <- map["recommend"]
+        id <- map["id"]
+        endTime <- map["endTime"]
+        subjectId <- map["subjectId"]
+        desc <- map["desc"]
+        subjectName <- map["subjectName"]
+        startTime <- map["startTime"]
+        liveRoom <- map["liveRoom"]
+        isJoin <- map["isJoin"]
+    }
+    
+    var duration: Int? //
+    var teacher: String? //
+    var onAir: String? //
+    var name: String? //
+    var isCallBack: String? //
+    var recommend: Int? //
+    var id: Int? //
+    var startTime: String? //
+    var endTime: String? //
+    var subjectId: Int? //
+    var desc: String? //
+    var subjectName: String? //
+    var liveRoom: String?
+    var isJoin: String?
+//    {
+//        "id": 227,
+//        "name": "Java测试直播",
+//        "desc": "萨达萨达萨达啊实打实大",
+//        "subjectId": 145,
+//        "subjectName": "Java",
+//        "duration": 10,
+//        "3 17:54",
+//        "startTime": "2endTime": "2018-07-2018-07-23 17:44",
+//        "onAir": null,
+//        "isCallBack": null,
+//        "isJoin": "N",
+//        "teacher": "李老师",
+//        "recommend": null,
+//        "liveRoom": "AF5854BFF61DC4AE9C33DC5901307461"
+//    }
+    
+    //"duration": 120,
+    //"teacher": "阚老师",
+    //"onAir": "N",
+    //"name": "串讲一",
+    //"startTime": "2018-07-24 11:21",
+    //"isCallBack": "N",
+    //"recommend": 0,
+    //"id": 229,
+    //"endTime": "2018-07-24 13:21",
+    //"subjectId": 145,
+    //"desc": "串讲一串讲一串讲一串讲一串讲一串讲一串讲一串讲一串讲一串讲一",
+    //"subjectName": "Java"
+}

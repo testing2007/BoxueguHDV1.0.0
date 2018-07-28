@@ -1,0 +1,121 @@
+//
+//  UserCenter.swift
+//  BoxueguHD
+//
+//  Created by Renying Wu on 2018/7/11.
+//  Copyright © 2018年 itcast. All rights reserved.
+//
+
+import Foundation
+import SwiftyJSON
+import ObjectMapper
+extension BXGUserCenter {
+    
+    struct UserDefaultsKey {
+        public static let UserModel = "com.itcast.boxuegu.userdefaults.key.usermodel"
+        public static let LastUserID = "com.itcast.boxuegu.userdefaults.key.lastuserid"
+    }
+}
+
+extension Notification.Name {
+    struct BXGUserCenter {
+        
+        public static let SignIn = Notification.Name(rawValue: "com.itcast.boxuegu.notification.name.usercenter.signin")
+        public static let SignOut = Notification.Name(rawValue: "com.itcast.boxuegu.notification.name.usercenter.signout")
+        
+    }
+}
+
+class BXGUserModel: Codable {
+    
+    var sign:       String?
+    var user_id:    String?
+    var head_img:   String?
+    var nickname:   String?
+    var username:   String?
+    var cc_user_id: String?
+    var cc_api_key: String?
+    var cc_live_user_id: String?
+    var cc_live_playback_key: String?
+    var itcast_uuid: String?
+    
+    init(jsonData: JSON) {
+        sign = jsonData["sign"].string
+        user_id = jsonData["user_id"].string
+        head_img = jsonData["head_img"].string
+        nickname = jsonData["nickname"].string
+        username = jsonData["username"].string
+        cc_user_id = jsonData["cc_user_id"].string
+        cc_api_key = jsonData["cc_api_key"].string
+        cc_live_user_id = jsonData["cc_live_user_id"].string
+        cc_live_playback_key = jsonData["cc_live_playback_key"].string
+        itcast_uuid = jsonData["itcast_uuid"].string
+    }
+}
+
+fileprivate let userCenter = BXGUserCenter()
+class BXGUserCenter {
+    
+    public static var shared = { userCenter }()
+    
+    public var userModel: BXGUserModel? {
+        get {
+            return loadUserModel()
+        }
+    }
+    
+    func requestSignIn(username: String, password: String, finished: @escaping (BXGUserModel?,String) -> Void) {
+        
+        BXGNetworkManager.request(api: BXGNetworkApp1API.login(username: username,
+                                                    password: password))
+        { [unowned self] (response) in
+            switch response {
+            case .success(let status, let message, let result):
+                if status == 200, let result = result{
+                    let json = JSON(result)
+                    let model = BXGUserModel.init(jsonData: json)
+                    
+                    
+                    self.signIn(model)
+                    finished(model, message)
+                }else {
+                    finished(nil, message)
+                }
+            case .failure( _):
+                // TODO: 文案替换
+                finished(nil, "网络连接失败")
+            }
+        }
+    }
+    
+    private func loadUserModel() -> BXGUserModel? {
+        if let data = UserDefaults.standard.value(forKey: BXGUserCenter.UserDefaultsKey.UserModel) as? Data,
+            let userModel = try? JSONDecoder().decode(BXGUserModel.self, from: data) {
+            return userModel
+        }else {
+            return nil
+        }
+    }
+    
+    private func signIn(_ userModel: BXGUserModel) {
+        
+        if let userID = userModel.user_id {
+            UserDefaults.standard.set(userID, forKey: BXGUserCenter.UserDefaultsKey.LastUserID)
+            UserDefaults.standard.synchronize()
+        }
+        
+        if let data = try? JSONEncoder().encode(userModel) {
+            UserDefaults.standard.set(data, forKey: BXGUserCenter.UserDefaultsKey.UserModel)
+            UserDefaults.standard.synchronize()
+            
+            NotificationCenter.default.post(name: NSNotification.Name.BXGUserCenter.SignIn, object: nil, userInfo: nil)
+        }
+    }
+    
+    public func signOut() {
+        
+        UserDefaults.standard.set(nil, forKey: BXGUserCenter.UserDefaultsKey.UserModel)
+        UserDefaults.standard.synchronize()
+        NotificationCenter.default.post(name: NSNotification.Name.BXGUserCenter.SignOut, object: nil, userInfo: nil)
+    }
+}

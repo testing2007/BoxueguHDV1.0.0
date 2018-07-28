@@ -1,0 +1,51 @@
+//
+//  BXGCoursePointModel.swift
+//  BoxueguHD
+//
+//  Created by Renying Wu on 2018/7/17.
+//  Copyright © 2018年 itcast. All rights reserved.
+//
+
+import Foundation
+import ObjectMapper
+
+class BXGCourseOutlinePointModel: Mappable {
+    
+    
+    var pointId: Int? //
+    var pointName: String?
+    var parentId: Int? //
+    var sort: Int? //
+//    var moduleVideoId = null
+    var videoId: Int? //
+    var ccVideoId: String? // "7DDF03D5CE0370A99C33DC5901307461",
+    var studyStatus: Int? //
+    var videoH5Url: String? // "https://cm14-ccm1-2.play.bokecc.com/flvs/ca/Qxh7S/ulWx7ZddGA-10.mp4?t=1531886403&key=669D8798041BB9667A0859A83C14F98B"
+
+    required init?(map: Map) {
+        
+    }
+    
+    func mapping(map: Map) {
+        pointId <- map["pointId"]
+        pointName <- map["pointName"]
+        parentId <- map["parentId"]
+        sort <- map["sort"]
+        ccVideoId <- map["ccVideoId"]
+        studyStatus <- map["studyStatus"]
+        videoH5Url <- map["videoH5Url"]
+    }
+    
+    
+}
+
+//"pointId": 1260,
+//"pointName": "å¹è®­è§é¢",
+//"parentId": 406,
+//"sort": 5,
+//"moduleVideoId": null,
+//"videoId": 1252,
+//"ccVideoId": "7DDF03D5CE0370A99C33DC5901307461",
+//"studyStatus": 0,
+//"videoH5Url": "https://cm14-ccm1-2.play.bokecc.com/flvs/ca/Qxh7S/ulWx7ZddGA-10.mp4?t=1531886403&key=669D8798041BB9667A0859A83C14F98B"
+

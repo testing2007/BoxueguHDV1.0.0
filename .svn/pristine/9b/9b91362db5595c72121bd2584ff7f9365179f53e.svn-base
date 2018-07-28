@@ -1,0 +1,388 @@
+//
+//  BXGDownloadCC.m
+//  Demo
+//
+//  Created by apple on 2018/7/2.
+//  Copyright © 2018年 com.bokecc.www. All rights reserved.
+//
+
+#import "BXGDownloadCC.h"
+#import "BXGDownloadCCModel.h"
+#import "BXGDownloadCCDelegate.h"
+#import "BoxueguHD-Swift.h"
+
+@interface BXGCCDownloadingItem : NSObject
+@property (nonatomic, strong) BXGDownloadCCModel *downloadItem;
+@property (nonatomic, strong) DWDownloadModel *ccDownloadModel;
+@end
+@implementation BXGCCDownloadingItem
+@end
+
+@interface BXGDownloadCC()
+@property (nonatomic, strong) NSString *ccApiKey;
+@property (nonatomic, strong) NSString *ccUserId;
+
+@property (nonatomic, strong) NSString *localDownloadDir;
+
+@property (nonatomic, strong) NSMutableArray<BXGDownloadCCModel*> *arrWaitingDownload;
+//@property (nonatomic, strong) NSMutableArray<BXGDownloadCCModel*> *arrDownloading;
+@property (nonatomic, strong) NSMutableDictionary<NSString*/*customId*/, BXGCCDownloadingItem*> *dictDownloading;
+
+//@property (nonatomic, strong) dispatch_queue_t requestDownloadURLSerialQueue;
+@property (nonatomic, strong) dispatch_group_t requestDownloadURLGroup;
+
+
+@end
+
+@implementation BXGDownloadCC
+
+-(instancetype)initWithDownloadDelegate:(id<BXGDownloadCCDelegate>)delegate{
+    self = [super init];
+    if(self) {
+        self.ccUserId = [BXGDownloadEnvSource.instance ccUserId] ;
+        self.ccApiKey = [BXGDownloadEnvSource.instance ccAPIKey];
+        _maxConcurrentDownloadNums = 2;
+        _arrWaitingDownload = [NSMutableArray new];
+        _dictDownloading = [NSMutableDictionary new];
+        _requestDownloadURLGroup = dispatch_group_create();
+        _delegate = delegate;
+    }
+    return self;
+}
+
+-(void)addDownloadItem:(BXGDownloadCCModel*)downloadItem finishBlock:(void (^)(bool bSuccess, NSString *error))finishBlock {
+    [self addDownloadItem:downloadItem  finishBlock:finishBlock isAppend:YES];
+}
+
+//-(void)addDownloadItems:(NSArray<BXGDownloadCCModel*>*)downloadItems {
+//    for(BXGDownloadCCModel *item in downloadItems) {
+//        [self addDownloadItem:item];
+//    }
+//}
+//
+-(void)addHeadDownloadItem:(BXGDownloadCCModel*)downloadItem  {
+    [self addDownloadItem:downloadItem finishBlock:nil isAppend:NO];
+}
+
+-(void)addDownloadItem:(BXGDownloadCCModel*)downloadItem finishBlock:(FinishBlockType)finishBlock isAppend:(BOOL)bAppend {
+    
+    NSAssert(self.ccUserId, @"ccUserId is nil");
+    NSAssert(self.ccApiKey, @"ccApiKey is nil");
+    
+    if(![self isValidate:downloadItem.downloadURL]) {
+        //获取下载地址 hlsSupport传@"0"
+        dispatch_queue_t globalQueue=dispatch_get_global_queue(0, 0);
+        dispatch_group_async(_requestDownloadURLGroup, globalQueue, ^{
+            dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+            dispatch_group_async(self->_requestDownloadURLGroup, globalQueue, ^ {
+                 /////begin-----
+                DWPlayInfo *playinfo = [[DWPlayInfo alloc] initWithUserId:self.ccUserId andVideoId:downloadItem.ccVideoId key:self.ccApiKey hlsSupport:@"0"];
+//                playinfo.mediatype = DWAPPDELEGATE.mediatype; //todo
+                playinfo.timeoutSeconds =20;//网络请求超时时间
+                
+//                NSLog(@"####add####");
+                playinfo.errorBlock = ^(NSError* error) {
+                    NSLog(@"资源请求失败, error=%@", error.debugDescription);
+                    if(self->_delegate && [self->_delegate respondsToSelector:@selector(requestDownloadURLFailForCustomId:andErrorReason:)]) {
+                        [self->_delegate requestDownloadURLFailForCustomId:downloadItem.customId andErrorReason:error.debugDescription];
+                    }
+
+                    //NSLog(@"%@####errorBlock####结束。。。",[NSThread currentThread]);
+                    if(finishBlock) {
+                        finishBlock(false, error.description);
+                    }
+                    dispatch_semaphore_signal(semaphore);
+                };
+                
+                playinfo.finishBlock = ^(NSDictionary *response) {
+//                    NSLog(@"####addInner####");
+                    NSDictionary *playUrls =[DWUtils parsePlayInfoResponse:response];
+                    
+                    if (!playUrls) {
+                        //说明 网络资源暂时不可用
+                        if(self->_delegate && [self->_delegate respondsToSelector:@selector(requestDownloadURLFailForCustomId:andErrorReason:)]) {
+#ifdef DEBUG
+                            [self->_delegate requestDownloadURLFailForCustomId:downloadItem.customId andErrorReason:[NSString stringWithFormat:@"request response cann't be resolve playUrls, the response = %@", response.debugDescription]];
+#else
+                            [_delegate requestDownloadURLFailForCustomId:downloadItem.customId andErrorReason:@"request response cann't be resolve playUrls"]
+#endif
+                        }
+                        if(finishBlock) {
+                            finishBlock(true, @"request response cann't be resolve playUrls");
+                        }
+                        return ;
+                    }
+                    NSLog(@"---%@",playUrls);
+                    NSArray *videos = [playUrls valueForKey:@"definitions"];
+                    if (videos) {
+                        NSDictionary *videoInfo = videos[videos.count-1];
+                        //字典转模型
+                        // downloadItem.definition =[videoInfo objectForKey:@"definition"];
+                        NSString *newDesp = [videoInfo objectForKey:@"desp"];
+                        NSString *newDownloadURL = [videoInfo objectForKey:@"playurl"];
+                        NSString *newToken = [playUrls objectForKey:@"token"];
+                        
+                        float systemVersion =[[[UIDevice currentDevice] systemVersion] floatValue];
+                        if(downloadItem.downloadURL && systemVersion < 11.3 && [newDesp isEqualToString:downloadItem.desp]) {
+                            //旧的URL
+                            NSData *resumeData =[[DWDownloadSessionManager manager] resumeDataFromFileWithFilePath:downloadItem.downloadURL];
+                            //新的URL
+                            NSData *newResumeData =[[DWDownloadSessionManager manager] newResumeDataFromOldResumeData:resumeData withURLString:newDownloadURL];
+                            downloadItem.resumeData = newResumeData;
+                        }
+                        downloadItem.downloadURL = newDownloadURL;
+                        downloadItem.token = newToken;
+                        downloadItem.desp = newDesp;
+                        
+                        //路径
+                        // 开始下载
+                        // NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+                        // NSString *documentDirectory = [paths objectAtIndex:0];
+                        
+                        /* 注意：
+                         若你所下载的 videoId 未启用视频加密功能，则保存的文件扩展名[必须]是 mp4，否则无法播放。
+                         若你所下载的 videoId 启用了视频加密功能，则保存的文件扩展名[必须]是 pcm，否则无法播放。
+                         */
+                        NSString *type;
+                        if ([downloadItem.downloadURL containsString:@"mp4?"]) {
+                            
+                            type =@"mp4";
+                        }else if([downloadItem.downloadURL containsString:@"pcm?"]){
+                            
+                            type =@"pcm";
+                        }else if ([downloadItem.downloadURL containsString:@"m4a?"]){
+                            
+                            type =@"m4a";
+                        }else if ([downloadItem.downloadURL containsString:@"mp3?"]){
+                            
+                            type =@"mp3";
+                        }else if ([downloadItem.downloadURL containsString:@"aac?"]){
+                            
+                            type =@"aac";
+                        }
+                        // NSString *videoPath = [NSString stringWithFormat:@"%@/%@.%@", _localDownloadDir, customId,type];
+                        NSString *videoFileName = [NSString stringWithFormat:@"%@.%@", downloadItem.customId, type];
+                        if(self->_delegate && [self->_delegate respondsToSelector:@selector(generateDownloadPathByFileName:)]) {
+                            NSString *videoPath = [self->_delegate generateDownloadPathByFileName:videoFileName];
+                            downloadItem.videoPath = videoPath;
+                        }
+                    };
+                    
+                    if(bAppend) {
+                        dispatch_async(dispatch_get_main_queue(), ^{
+                            [self.arrWaitingDownload addObject:downloadItem];
+                        });
+                    } else {
+                        dispatch_async(dispatch_get_main_queue(), ^{
+                            [self.arrWaitingDownload insertObject:downloadItem atIndex:0];
+                        });
+                    }
+                    
+                    // NSLog(@"%@####finishBlock####结束。。。",[NSThread currentThread]);
+                    dispatch_semaphore_signal(semaphore);
+                };
+                [playinfo start];
+                ///end-----
+            });
+            
+            dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+            //NSLog(@"%@####1结束####",[NSThread currentThread]);
+            if(finishBlock)
+                finishBlock(true, nil);
+        });
+        
+    } else  {
+        //如果downloadURL可用,且没有过期, 需要判断是否已添加到下载列表中或正在下载中
+        if(![self isAddDownloadList:downloadItem.customId]) {
+            [self.arrWaitingDownload addObject:downloadItem];
+        }
+        if(finishBlock) {
+            finishBlock(true, nil);
+        }
+    }
+}
+
+-(void)start {
+    //启动下载等待列表中的资源
+    dispatch_group_notify(_requestDownloadURLGroup, dispatch_get_global_queue(0, 0), ^{
+        NSLog(@"####start####");
+        dispatch_async(dispatch_get_main_queue(), ^{
+        if(self.dictDownloading.count>=self.maxConcurrentDownloadNums) {
+            return ;
+        }
+        if(self.arrWaitingDownload && self.arrWaitingDownload.count>=1) {
+            BXGDownloadCCModel *downloadItem = self.arrWaitingDownload[0];
+            
+            DWDownloadModel *loadModel =[[DWDownloadModel alloc]initWithURLString:downloadItem.downloadURL
+                                                                         filePath:downloadItem.videoPath
+                                                                    responseToken:downloadItem.token
+                                                                           userId:self->_ccUserId
+                                                                          videoId:downloadItem.ccVideoId];
+            if(downloadItem.resumeData) {
+                loadModel.resumeData = downloadItem.resumeData;
+            }
+            
+            //添加到正在下载列表中
+            BXGCCDownloadingItem *downloadingItem = [BXGCCDownloadingItem new];
+            downloadingItem.downloadItem = downloadItem;
+            downloadingItem.ccDownloadModel = loadModel;
+            [self.dictDownloading setObject:downloadingItem forKey:downloadItem.customId];
+            
+            //从待下载列表中删除
+            [self.arrWaitingDownload removeObject:downloadItem];
+            
+            DWDownloadSessionManager *manager =[DWDownloadSessionManager manager];
+            [manager startWithDownloadModel:loadModel progress:^(DWDownloadProgress *progress, DWDownloadModel *downloadModel) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    NSLog(@"progress ccdownload progress=%lf", progress.progress);
+                    if(self->_delegate && [self->_delegate respondsToSelector:@selector(downloadProgressForDownloadItem:)]) {
+                        downloadItem.downloadState = [downloadItem convertDownloadState:downloadModel.state];
+                        downloadItem.totalBytesWritten = downloadModel.progress.totalBytesWritten;
+                        downloadItem.totalBytesExpectedToWrite = downloadModel.progress.totalBytesExpectedToWrite;
+                        downloadItem.progress = downloadModel.progress.progress;
+                        downloadItem.speed = downloadModel.progress.speed;
+                        [self->_delegate downloadProgressForDownloadItem:downloadItem];
+                    }
+                });
+            } state:^(DWDownloadModel *downloadModel, DWDownloadState state, NSString *filePath, NSError *error) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if(self->_delegate && [self->_delegate respondsToSelector:@selector(downloadStateForDownloadItem:andError:)]) {
+                        downloadItem.downloadState = [downloadItem convertDownloadState:state];
+                        [self->_delegate downloadStateForDownloadItem:downloadItem andError:error];
+                    }
+                    if(state==DWDownloadStateCompleted) {
+//                        NSLog(@"state ccdownload progress=%lf", downloadModel.progress.progress);
+                        [self downloadNextItem:downloadItem];
+                    }
+                    else if(state==DWDownloadStateFailed) {
+                        [self.dictDownloading removeObjectForKey:downloadItem.customId];
+                    }
+                });
+            }];
+        }
+    }); //dispatch_get_mainqueue
+    });
+}
+
+-(void)downloadNextItem:(BXGDownloadCCModel*)downloadItem {
+    [self.dictDownloading removeObjectForKey:downloadItem.customId];
+    [self start];
+}
+
+///全部下载
+-(void)allStartDownload:(NSArray<BXGDownloadCCModel*>*)arrDownloadItem {
+    for(BXGDownloadCCModel *downloadItem in arrDownloadItem) {
+        [self addDownloadItem:downloadItem finishBlock:nil];
+    }
+    [self start];
+}
+///开始下载指定文件
+-(void)startDownloadItem:(BXGDownloadCCModel*)downloadItem {
+    [self addHeadDownloadItem:downloadItem];
+    [self start];
+}
+
+///全部暂停
+-(void)allPauseDownload {
+    if(_dictDownloading) {
+        NSMutableArray *removeKeys = [NSMutableArray new];
+        for(BXGCCDownloadingItem *item in _dictDownloading.allValues) {
+            if(item.ccDownloadModel.state == DWDownloadStateRunning) {
+                [[DWDownloadSessionManager manager] suspendWithDownloadModel:item.ccDownloadModel];
+                //todo 是否需要将暂停的数据 item.ccDownloadModel 赋值给item.downloadItem
+                [self.arrWaitingDownload addObject:item.downloadItem];
+                [removeKeys addObject:item.downloadItem.customId];
+            }
+        }
+        if(removeKeys.count>0) {
+            [self.dictDownloading removeObjectsForKeys:removeKeys];
+        }
+    }
+}
+///暂停下载指定文件
+-(void)pauseDownloadItem:(BXGDownloadCCModel*)downloadItem {
+    NSMutableArray *removeKeys = [NSMutableArray new];
+    BXGCCDownloadingItem *item = [self.dictDownloading objectForKey:downloadItem.customId];
+    if(item && item.ccDownloadModel.state == DWDownloadStateRunning) {
+        [[DWDownloadSessionManager manager] suspendWithDownloadModel:item.ccDownloadModel];
+        //todo 是否需要将暂停的数据 item.ccDownloadModel 赋值给item.downloadItem
+        [self.arrWaitingDownload addObject:item.downloadItem];
+        [removeKeys addObject:item.downloadItem.customId];
+    }
+    if(removeKeys.count>0) {
+        [self.dictDownloading removeObjectsForKeys:removeKeys];
+    }
+}
+
+///重新下载指定文件
+-(void)resumeDownloadItem:(BXGDownloadCCModel*)downloadItem {
+    [self startDownloadItem:downloadItem];
+}
+
+///取消下载指定文件
+-(void)cancelDownloadItem:(BXGDownloadCCModel*)downloadItem {
+    DWDownloadModel *loadModel =[[DWDownloadModel alloc]initWithURLString:downloadItem.downloadURL
+                                                                 filePath:downloadItem.videoPath
+                                                            responseToken:downloadItem.token
+                                                                   userId:self->_ccUserId
+                                                                  videoId:downloadItem.ccVideoId];
+    [[DWDownloadSessionManager manager] cancleWithDownloadModel:loadModel isClear:YES];
+}
+
+-(void)cancelDownloadItems:(NSArray<BXGDownloadCCModel*>*)arrDownloadItem {
+    for(BXGDownloadCCModel *item in arrDownloadItem) {
+        [self cancelDownloadItem:item];
+    }
+}
+
+#pragma mark private function
+-(BOOL)isAddDownloadList:(NSString*)customId {
+    BOOL bExist = NO;
+    NSObject *obj = [_dictDownloading objectForKey:customId];
+    if(obj) {
+        bExist = YES;
+        return bExist;
+    }
+    for(BXGDownloadCCModel *downloadItem in _arrWaitingDownload) {
+        if([downloadItem.customId isEqualToString:customId]) {
+            bExist = YES;
+            break;
+        }
+    }
+    return bExist;
+}
+
+/**
+ 判断URL是否有效
+ *取得时间戳与失效时间戳做比对
+ *http://d1-33.play.bokecc.com/flvs/cb/QxhEr/hKboX7hTIY-20.pcm?t=1496894440&key=F458F79EF07944EAAF38AC01A4F49CC9&upid=2625321496887240251
+ *t=1496894440为失效时间点
+ */
+-(BOOL)isValidate:(NSString *)downloadURL{
+    
+    if(!downloadURL) {
+        NSLog(@"url不可用");
+        return NO;
+    }
+    
+    NSRange range =[downloadURL rangeOfString:@"t="];
+    NSRange timeRang =NSMakeRange(range.location+2, 10);
+    NSString *oldStr =[downloadURL substringWithRange:timeRang];
+    NSLog(@"时间%@",oldStr);
+    
+    NSDate *date =[NSDate date];
+    NSString *timeString =[NSString stringWithFormat:@"%f",[date timeIntervalSince1970]];
+    NSString *nowString =[timeString substringWithRange:NSMakeRange(0, 10)];
+    NSLog(@"__%@___%@",oldStr,nowString);
+    
+    if ([nowString integerValue] >= [oldStr integerValue]) {
+        NSLog(@"url不可用");
+        return NO;
+    }else{
+        
+        NSLog(@"url可用");
+        return YES;
+    }
+}
+
+@end

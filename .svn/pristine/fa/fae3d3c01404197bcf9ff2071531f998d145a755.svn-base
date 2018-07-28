@@ -1,0 +1,74 @@
+//
+//  BXGDownloadManager.swift
+//  BoxueguHD
+//
+//  Created by apple on 2018/7/19.
+//  Copyright © 2018年 itcast. All rights reserved.
+//
+
+import Foundation
+
+class BXGDownloadManager {
+    static let instance = BXGDownloadManager()
+    
+    ///注册/反注册观察者
+    func registerObserver(observer:BXGDownloadAPIDelegate) -> Void {
+        BXGDownloadAPI.share().registerObserver(observer)
+    }
+    func unregisterObserver(observer:BXGDownloadAPIDelegate) -> Void {
+        BXGDownloadAPI.share().unregisterObserver(observer)
+    }
+    
+    //添加下载
+    func addDownloadItem(courseOutlineModuleModel:BXGCourseOutlineModuleModel, courseName:String, courseType:Int, phaseName:String, isWatched:Bool) -> Void {
+        if let sectionItems = courseOutlineModuleModel.sectionItems {
+            for sectionItem in sectionItems {
+                if let pointItems = sectionItem.pointItems {
+                    for pointItem in pointItems {
+                        let downloadModel:BXGDownloadAPIModel = BXGDownloadAPIModel.init(courseId: String(courseOutlineModuleModel.studentCourseId ?? 0),
+                                                                                         andCourseName: courseName,
+                                                                                         andCourseType: String(courseType),
+                                                                                         andPhaseId: String(courseOutlineModuleModel.phaseId ?? 0),
+                                                                                         andPhaseName: phaseName,
+                                                                                         andPhaseSort: String(courseOutlineModuleModel.phaseSort ?? 0),
+                                                                                         andModuleId: String(courseOutlineModuleModel.moduleId ?? 0),
+                                                                                         andModuleName: courseOutlineModuleModel.moduleName ?? "",
+                                                                                         andModuleSort: String(courseOutlineModuleModel.sort ?? 0),
+                                                                                         andSectionId: String(sectionItem.sectionId ?? 0),
+                                                                                         andSectionName:sectionItem.sectionName ?? "",
+                                                                                         andSectionSort: String(sectionItem.sort ?? 0),
+                                                                                         andSectionIsPass: String(sectionItem.isPass ?? 0),
+                                                                                         andSectionIsTry: "",
+                                                                                         andPointId: String(pointItem.pointId ?? 0),
+                                                                                         andPointName: pointItem.pointName ?? "",
+                                                                                         andPointSort: String(pointItem.sort ?? 0),
+                                                                                         andVideoId: String(pointItem.videoId ?? 0),
+                                                                                         andCCVideoId: pointItem.ccVideoId ?? "0",
+                                                                                         andIsWatched: isWatched)
+                        BXGDownloadAPI.share().addDownloadItem(downloadModel)
+                    }
+                }
+            }
+        }
+    }
+
+    func start() {
+        BXGDownloadAPI.share().start()
+    }
+
+//    ///启动之前已添加到下载列表但是还没有下完的资源
+//    -(void)allStartPersisitDownloadItems:(NSArray<BXGDownloadPersistAPIModel*>*)apiPersistDownloadItems;
+//    -(void)startPersisitDownloadItem:(BXGDownloadPersistAPIModel*)apiPersistDownloadItem;
+//
+//    ///全部暂停
+//    -(void)allPauseDownload;
+//    ///暂停下载指定文件
+//    -(void)pausePersisitDownloadItem:(BXGDownloadPersistAPIModel*)apiPersistDownloadItem;
+//    ///重新下载指定文件
+//    -(void)resumePersisitDownloadItem:(BXGDownloadPersistAPIModel*)apiPersistDownloadItem;;
+//
+//    ///取消下载指定文件
+//    -(void)cancelPersisitDownloadItem:(BXGDownloadPersistAPIModel*)apiPersistDownloadItem;
+//    -(void)cancelPersisitDownloadItems:(NSArray<BXGDownloadPersistAPIModel*>*)apiPersistDownloadItems;
+}
+

@@ -1,0 +1,82 @@
+//
+//  BXGConstrueViewModel.swift
+//  BoxueguHD
+//
+//  Created by Renying Wu on 2018/7/24.
+//  Copyright © 2018年 itcast. All rights reserved.
+//
+
+import Foundation
+import ObjectMapper
+class BXGConstrueViewModel {
+    
+    var liveModels: [BXGConstrueLiveModel]?
+    var replayModels: [BXGConstrueLiveModel]?
+    
+    func loadLiveList(finished: @escaping (_ succeed: Bool,_ message: String?)->()) {
+        
+        self.liveModels = nil
+        
+        let date = Date()
+        BXGNetworkManager.request(api: BXGNetworkApp1API.construeLivePlanList(day: date.convertToString(toFormat: "yyyy-MM-dd"))) { (response) in
+            switch response {
+            case .success(let status, let message, let result):
+                
+                if status == 200 {
+                    if let models = Mapper<BXGConstrueLiveModel>().mapArray(JSONObject: result) {
+                        self.liveModels = models
+                        finished(true, "")
+                        return
+                    }
+                }
+
+            case .failure(let error):
+                print()
+            }
+            finished(false, "")
+        }
+    }
+    
+    func loadReplayList(finished: @escaping (_ succeed: Bool,_ message: String?)->()) {
+        BXGNetworkManager.request(api: BXGNetworkApp2API.construeReplay(pageNo: nil, pageSize: nil, day: nil)) { (response) in
+            switch response {
+            case .success(let status, let message, let result):
+                if status == 200 {
+                    if let result = result as? Dictionary<String, Any>, let items = result["items"], let models = Mapper<BXGConstrueLiveModel>().mapArray(JSONObject: items) {
+                        self.replayModels = models
+                        finished(true, "")
+                        return
+                    }
+                }
+            case .failure(let error):
+                print()
+            }
+            finished(false, "")
+        }
+        
+    }
+    
+    func load() {
+        // 日历
+//        BXGNetworkManager.request(api: BXGNetworkApp1API.construePlanByMonth) { (response) in
+//            switch response {
+//            case .success(let status, let message, let result):
+//                print()
+//            case .failure(let error):
+//                print()
+//            }
+//        }
+//        // 回放
+//        BXGNetworkManager.request(api: BXGNetworkApp1API.construeReplay(pageNo: nil, pageSize: nil, day: nil)) { (response) in
+//            switch response {
+//            case .success(let status, let message, let result):
+//                print()
+//            case .failure(let error):
+//                print()
+//            }
+//        }
+        
+        
+
+    }
+}

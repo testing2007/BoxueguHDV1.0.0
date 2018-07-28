@@ -1,0 +1,149 @@
+//
+//  BXGDownloadedDetailViewModel.swift
+//  BoxueguHD
+//
+//  Created by apple on 2018/7/24.
+//  Copyright © 2018年 itcast. All rights reserved.
+//
+
+import Foundation
+
+class BXGDownloadedDetailSectionModel {
+    var sectionName:String?;
+    var arrPointModel:[BXGDownloadPersistAPIModel]?;
+    
+    init() {
+        
+    }
+}
+
+class BXGDownloadedDetailViewModel {
+    var courseId:Int32;
+    var phaseId:Int32;
+    var moduleId:Int32;
+    var moduleName:String;
+    var bEdit:Bool = false;//是否处于编辑模式, 默认为非编辑状态
+    var openHeadSectionIdSet:Set<Int>;//所有打开Section的头
+    
+    var arrSectionModel:[BXGDownloadedDetailSectionModel]?
+    var dictSelModel:[String/*key=sectionIndex_pointIndex*/:BXGDownloadPersistAPIModel] //选中的模型
+
+    init(courseId: Int32, phaseId: Int32, moduleId: Int32, moduleName: String, bEdit:Bool) {
+        self.courseId = courseId
+        self.phaseId = phaseId
+        self.moduleId = moduleId
+        self.moduleName = moduleName
+        self.dictSelModel = [String:BXGDownloadPersistAPIModel]()
+        self.bEdit = bEdit;
+        self.openHeadSectionIdSet = Set<Int>()
+        self.loadData()
+    }
+
+    func loadData() -> Void {
+        func filteModel(arrDetailModel:[BXGDownloadPersistAPIModel]?) -> [BXGDownloadedDetailSectionModel]? {
+            if arrDetailModel == nil {
+                self.arrSectionModel = nil;
+                return nil;
+            }
+            var retDownloadedCourseInfo:[BXGDownloadedDetailSectionModel] = [BXGDownloadedDetailSectionModel]()
+            var preId:Int32 = -1;
+            
+            var model:BXGDownloadedDetailSectionModel?;
+            if let detailModel = arrDetailModel {
+                for dataloadedItem in detailModel {
+                    
+                    if(preId == -1 || preId != dataloadedItem.apiDownloaderItem.sectionId) {
+                        let temp:BXGDownloadedDetailSectionModel = BXGDownloadedDetailSectionModel()
+                        temp.sectionName = dataloadedItem.apiDownloaderItem.sectionName;
+                        temp.arrPointModel = Array<BXGDownloadPersistAPIModel>()
+                        temp.arrPointModel?.append(dataloadedItem)
+                        preId = dataloadedItem.apiDownloaderItem.sectionId;
+                        
+                        model = temp
+                        retDownloadedCourseInfo.append(model!);
+                    } else {
+                        let tempCM = model!;
+                        tempCM.arrPointModel?.append(dataloadedItem);
+                    }
+                }
+            }
+            
+            return (retDownloadedCourseInfo.count>0) ? retDownloadedCourseInfo : nil;
+        }
+
+        //查询数据库
+        BXGDownloadManager.instance.resetDownloadedCourseDetailModels()
+        let arrDetailModel:[BXGDownloadPersistAPIModel]? = BXGDownloadManager.instance.getDownloadedCourseDetailModelsByCourseId(courseId: courseId,
+                                                                                                                                 phaseId: phaseId,
+                                                                                                                                 moduleId:moduleId)
+        //真正需要的模型
+        self.arrSectionModel = filteModel(arrDetailModel: arrDetailModel)
+    }
+    
+    func reset() {
+        self.loadData()
+    }
+    
+    func sectionCount() -> Int {
+        return self.arrSectionModel?.count ?? 0
+    }
+    
+    func pointCountInSectionIndex(sectionIndex:Int) -> Int {
+        if(self.isOpenHeadSection(sectionId: sectionIndex)) {
+            return self.arrSectionModel?[sectionIndex].arrPointModel?.count ?? 0
+        } else {
+            return 0
+        }
+    }
+    
+    func sectionName(sectionIndex:Int) -> String {
+        return self.arrSectionModel?[sectionIndex].sectionName ?? "";
+    }
+    
+    func pointNameInSectionIndex(sectionIndex:Int, pointIndex:Int) -> String {
+        return self.arrSectionModel?[sectionIndex].arrPointModel?[pointIndex].apiDownloaderItem.pointName ?? "";
+    }
+    
+    func selectSectionIndex(sectionIndex:Int, pointIndex:Int) -> Void {
+        if let modelItem = self.arrSectionModel?[sectionIndex].arrPointModel?[pointIndex] {
+                let key = self.selKey(sectionIndex: sectionIndex, pointIndex: pointIndex)
+                self.dictSelModel[key] = modelItem
+        }
+    }
+    
+    func deselectSectionIndex(sectionIndex:Int, pointIndex:Int) -> Void {
+        let key = self.selKey(sectionIndex: sectionIndex, pointIndex: pointIndex)
+        if (self.dictSelModel.keys.contains(key)) {
+            self.dictSelModel[key] = nil
+        }
+    }
+    
+    func removeSelectItem() -> Void {
+        var bDelete = false
+        for selModel in self.dictSelModel.values {
+            BXGDownloadManager.instance.cancelPersisitDownloadItem(apiPersistDownloadItem: selModel)
+            bDelete = true
+        }
+        if bDelete {
+            self.reset()
+        }
+    }
+    
+    //select section
+    func isOpenHeadSection(sectionId:Int) -> Bool {
+        return openHeadSectionIdSet.contains(sectionId);
+    }
+    func addOpenHeadSectionId(sectionId:Int) -> Void {
+        openHeadSectionIdSet.insert(sectionId);
+    }
+    func removeOpenHeadSectionId(sectionId:Int) -> Void {
+        if(openHeadSectionIdSet.contains(sectionId)) {
+            openHeadSectionIdSet.remove(sectionId);
+        }
+    }
+    
+    
+    private func selKey(sectionIndex:Int, pointIndex:Int) -> String {
+        return String(format: "%d_%d", sectionIndex, pointIndex)
+    }
+}

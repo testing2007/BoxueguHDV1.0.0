@@ -1,0 +1,124 @@
+//
+//  BXGMainVC.swift
+//  BoxueguHD
+//
+//  Created by Renying Wu on 2018/7/11.
+//  Copyright © 2018年 itcast. All rights reserved.
+//
+
+import UIKit
+import ObjectMapper
+
+
+
+class BXGMainNavVC: UINavigationController {
+    override var preferredStatusBarStyle: UIStatusBarStyle {
+        return .default
+    }
+    
+    override func pushViewController(_ viewController: UIViewController, animated: Bool) {
+        if(self.childViewControllers.count >= 1) {
+            let backItem:UIBarButtonItem = self.createBackItemTarget(target: self, backAction:#selector(BXGBaseNaviController.onBack))
+            viewController.navigationItem.leftBarButtonItem = backItem
+            viewController.hidesBottomBarWhenPushed = true;
+            self.isNavigationBarHidden = false;
+        }
+        super.pushViewController(viewController, animated: animated);
+    }
+    
+    @objc func onBack() {
+        self.popViewController(animated: true)
+    }
+    
+    func createBackItemTarget(target:AnyObject, backAction:Selector) -> UIBarButtonItem {
+        
+        let imageIcon:UIImage = #imageLiteral(resourceName: "navigation_back").withRenderingMode(UIImageRenderingMode.alwaysOriginal)
+//                UIImage *imageIcon = [[UIImage imageNamed:@"返回-白"] imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal];
+        let backItem:UIBarButtonItem = UIBarButtonItem(image: imageIcon,
+                                                       style: .plain,
+                                                       target: target,
+                                                       action: backAction)
+        // 设置返回按钮位置
+        backItem.imageInsets = UIEdgeInsetsMake(0, -5, 0, 0)
+        return backItem;
+    }
+}
+
+class BXGMainTabBar: UITabBar {
+    override var traitCollection: UITraitCollection {
+        
+        return UITraitCollection(horizontalSizeClass: UIUserInterfaceSizeClass.compact)
+    }
+}
+
+class BXGMainVC: UITabBarController {
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        self.view.backgroundColor = UIColor.white
+        installChildVC()
+        installObserver()
+    }
+    
+    func installChildVC() {
+        addChildVC(title: "课程",
+                   viewControllerClass: BXGCourseVC.self,
+                   imageName: "tabbar_course",
+                   selectedImageName: "tabbar_course_selected")
+        addChildVC(title: "直播",
+                   viewControllerClass: BXGConstrueVC.self,
+                   imageName: "tabbar_live",
+                   selectedImageName: "tabbar_live_selected")
+        addChildVC(title: "下载",
+                   viewControllerClass: BXGDownloadRootVC.self,
+                   imageName: "tabbar_download",
+                   selectedImageName: "tabbar_download_selected")
+    }
+    
+    func installObserver() {
+        NotificationCenter.default.addObserver(forName: Notification.Name.BXGUserCenter.SignOut, object: nil, queue: nil) { (noti) in
+            self.popUserLogin()
+        }
+    }
+
+    func addChildVC(title: String, viewControllerClass: AnyClass, imageName: String, selectedImageName: String) {
+        if let vc = viewControllerClass.alloc() as? UIViewController {
+            let nav = BXGMainNavVC(rootViewController: vc)
+            nav.tabBarItem.title = title
+        
+            nav.navigationBar.isTranslucent = false
+            nav.navigationBar.shadowImage = UIImage()
+            nav.navigationBar.setBackgroundImage(UIImage(), for: UIBarMetrics.default)
+            nav.navigationBar.layer.shadowColor = UIColor.black.cgColor
+            nav.navigationBar.layer.shadowOffset = CGSize(width: 0, height: 4)
+            nav.navigationBar.layer.shadowOpacity = 0.04
+            
+            tabBar.layer.shadowColor = UIColor.black.cgColor
+            tabBar.layer.shadowOffset = CGSize(width: 0, height: -4)
+            tabBar.layer.shadowOpacity = 0.04
+            tabBar.shadowImage = UIImage()
+            tabBar.backgroundImage = UIImage()
+            tabBar.backgroundColor = UIColor.white
+            tabBar.itemPositioning = .centered
+            
+            nav.tabBarItem.title = title
+            nav.tabBarItem.setTitleTextAttributes([NSAttributedStringKey.foregroundColor: UIColor.hexColor(hex: 0x33495E)], for: UIControlState.normal)
+            nav.tabBarItem.setTitleTextAttributes([NSAttributedStringKey.foregroundColor: UIColor.hexColor(hex: 0x466DE2)], for: UIControlState.highlighted)
+            nav.tabBarItem.image = UIImage(named: imageName)?.withRenderingMode(UIImageRenderingMode.alwaysOriginal)
+            nav.tabBarItem.selectedImage = UIImage(named: selectedImageName)?.withRenderingMode(UIImageRenderingMode.alwaysOriginal)
+            nav.tabBarItem.imageInsets = UIEdgeInsetsMake(0, -1, 0, 1)
+            self.addChildViewController(nav)
+        }
+    }
+    
+    // MARK: function
+    
+    func popUserLogin() {
+        if let nav = self.selectedViewController as? UINavigationController {
+            nav.present(BXGUserLoginVC(), animated: true, completion: {
+                
+            })
+        }
+    }
+}

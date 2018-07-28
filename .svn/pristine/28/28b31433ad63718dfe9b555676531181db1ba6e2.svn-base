@@ -1,0 +1,66 @@
+//
+//  BXGDownloadCCModel.m
+//  Demo
+//
+//  Created by apple on 2018/7/5.
+//  Copyright © 2018年 com.bokecc.www. All rights reserved.
+//
+
+#import "BXGDownloadCCModel.h"
+
+@interface BXGDownloadCCModel()
+@end
+
+@implementation BXGDownloadCCModel
+
+-(instancetype)initWithCustomId:(NSString* _Nonnull)customId
+                   andCCVideoId:(NSString* _Nonnull)ccVideoId {
+    return [self initWithCustomId:customId andCCVideoId:ccVideoId andDownloadURL:nil andDownloadFilePath:nil andDownloadToken:nil andDownloadQualityDesp:nil];
+}
+
+-(instancetype)initWithCustomId:(NSString* _Nonnull)customId
+                   andCCVideoId:(NSString* _Nonnull)ccVideoId
+                 andDownloadURL:(NSString* _Nullable)downloadURL
+            andDownloadFilePath:(NSString* _Nullable)filePath
+               andDownloadToken:(NSString* _Nullable)token
+         andDownloadQualityDesp:(NSString* _Nullable)dowloadQualityDesp {
+    self = [super init];
+    if(self) {
+        _customId = customId;
+        _ccVideoId = ccVideoId;
+        _downloadURL = downloadURL;
+        _videoPath = filePath;
+        _token = token;
+        _desp = dowloadQualityDesp;
+    }
+    return self;
+}
+
+-(BXGDownloadState)convertDownloadState:(DWDownloadState)downloadState {
+    BXGDownloadState state = BXGDownloadStateNone;
+    switch (downloadState) {
+        case DWDownloadStateNone:
+            state = BXGDownloadStateNone;
+            break;
+        case DWDownloadStateReadying:
+            state = BXGDownloadStateReadying;
+            break;
+        case DWDownloadStateRunning:
+            state = BXGDownloadStateRunning;
+            break;
+        case DWDownloadStateSuspended:
+            state = BXGDownloadStateSuspended;
+            break;
+        case DWDownloadStateCompleted:
+            state = BXGDownloadStateCompleted;
+            break;
+        case DWDownloadStateFailed:
+            state = BXGDownloadStateFailed;
+            break;
+        default:
+            NSAssert(FALSE, @"can't be happen");
+            break;
+    }
+    return state;
+}
+@end

@@ -1,0 +1,76 @@
+//
+//  BXGCourseOutlineViewModel.swift
+//  BoxueguHD
+//
+//  Created by Renying Wu on 2018/7/17.
+//  Copyright © 2018年 itcast. All rights reserved.
+//
+
+import Foundation
+import ObjectMapper
+
+class BXGCourseOutlineViewModel {
+    
+    var moduleModel: BXGCourseOutlineModuleModel?
+    
+    func request(courseId: Int, moduleId: Int, finished: @escaping (_ succeed: Bool)->()) {
+        
+        BXGNetworkManager.request(api: BXGNetworkApp2API.coursePlayCouseKnowledgeTree(courseId: courseId, moduleId: moduleId, isTry: false)) { (response) in
+            switch response {
+            case .success(let status, let message, let result):
+                if let model = Mapper<BXGCourseOutlineModuleModel>().map(JSONObject: result) {
+                    print(model)
+                    self.moduleModel = model
+                    finished(false)
+                    return
+                }
+            case .failure(let error):
+                print()
+            }
+            finished(false)
+        }
+    }
+    
+    func makeVODVideoModel(sectionModel: BXGCourseOutlineSectionModel) -> [BXGVODPlayerVideoModel]? {
+        guard let pointItems = sectionModel.pointItems, let studentCourseId = moduleModel?.studentCourseId else {
+            return nil
+        }
+        var array = Array<BXGVODPlayerVideoModel>()
+        for (index, pointModel) in pointItems.enumerated() {
+            
+            if let id = pointModel.videoId, let name = pointModel.pointName, let resourseId = pointModel.ccVideoId {
+                let videoModel = BXGVODPlayerVideoModel(id: id, name: name, resourseId: resourseId, tag: index, customId: "D_\(studentCourseId)_\(id)")
+                array.append(videoModel)
+            }
+        }
+        return array
+    }
+    
+    func makeVODVideoModels(moduleModel: BXGCourseOutlineModuleModel) -> [[BXGVODPlayerVideoModel]]? {
+        if let sectionModels = moduleModel.sectionItems {
+            
+            var array = [[BXGVODPlayerVideoModel]]()
+            
+            for s in sectionModels {
+                if let list = makeVODVideoModel(sectionModel: s) {
+                    array.append(list)
+                }
+            }
+            return array
+        }else {
+            return nil
+        }
+    }
+    
+    func generateVODModels() -> [[BXGVODPlayerVideoModel]]? {
+        if let moduleModel = moduleModel {
+            return makeVODVideoModels(moduleModel: moduleModel)
+        }else {
+            return nil
+        }
+    }
+
+}
+
+
+

@@ -1,0 +1,168 @@
+//
+//  BXGCourseVC.swift
+//  BoxueguHD
+//
+//  Created by Renying Wu on 2018/7/12.
+//  Copyright © 2018年 itcast. All rights reserved.
+//
+
+import UIKit
+import ObjectMapper
+import SwiftyJSON
+
+class BXGCourseVC: UIViewController {
+    
+    lazy var viewModel = {
+        return BXGCourseViewModel()
+    }()
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+
+    }
+    
+    lazy var courseListCV: UICollectionView = {
+       let layout = UICollectionViewFlowLayout()
+        layout.minimumLineSpacing = 0
+        layout.minimumInteritemSpacing = 0
+        let collectionView = UICollectionView(frame: CGRect.zero, collectionViewLayout: layout)
+        collectionView.register(BXGCourseListCCell.self, forCellWithReuseIdentifier: "BXGCourseListCCell")
+        collectionView.backgroundColor = UIColor.white
+        return collectionView
+    }()
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        self.navigationItem.rightBarButtonItem = BXGNavUserItem()
+        self.view.backgroundColor = UIColor.white
+        self.view.addSubview(courseListCV)
+        courseListCV.delegate = self
+        courseListCV.dataSource = self
+        courseListCV.snp.makeConstraints { (make) in
+            make.left.right.top.bottom.equalToSuperview()
+        }
+        
+        courseListCV.bxg_setHeaderRefreshBlock {
+            self.loadData()
+        }
+        
+        loadData()
+        
+//        let tap = UITapGestureRecognizer(target: self, action: #selector(tapCollectionView))
+//        courseListCV.addGestureRecognizer(tap)
+    }
+    
+    func loadData() {
+        viewModel.requestStudyCourse { (succeed, message) in
+            self.courseListCV.reloadData()
+            self.courseListCV.bxg_endHeaderRefresh()
+        }
+    }
+    @objc func tapCollectionView() {
+        viewModel.requestStudyCourse { (succeed, message) in
+            self.courseListCV.reloadData()
+        }
+        
+    }
+    
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        // 加载 就业课
+        
+        // 加载 微课
+        
+        
+        
+//        BXGNetworkManager.request(api: BXGNetworkApp2API.courseStudyCenterEmploymentCourse()) { (response) in
+//            switch response {
+//            case .success(let status, let message, let result):
+//                print(response)
+//
+//                let json = JSON(result).arrayObject
+//
+//                let any = Mapper<BXGStudyCourseModel>().mapArray(JSONObject: json)
+//
+//                if let array = any as? [BXGStudyCourseModel] {
+//                    for m in array {
+//                        m.type = .employmentCourse
+//                    }
+//                }
+//
+//
+//            case .failure(let error):
+//                print(response)
+//            }
+//        }
+//
+//        BXGNetworkManager.request(api: BXGNetworkApp2API.courseStudyCenterMicroCourse(pageNumber: 1, pageSize: 10000)) { (response) in
+//            switch response {
+//            case .success(let status, let message, let result):
+//
+//                let json = JSON(result)
+//                let json2 = json["list"]
+//
+//                let any = Mapper<BXGStudyCourseModel>().mapArray(JSONObject: json2.arrayObject)
+//                if let array = any as? [BXGStudyCourseModel] {
+//                    for m in array {
+//                        m.type = .microCourse
+//                    }
+//                }
+//
+//
+//                print(response)
+//            case .failure(let error):
+//                print(response)
+//            }
+//        }
+        
+    }
+}
+
+extension BXGCourseVC: UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout {
+    
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        
+        // TODO: HUD Loding
+        BXGHUDTool.showLoadingHUD(string: "")
+        viewModel.requestStudentApplyInformationPerfect { (succees , message) in
+            
+            BXGHUDTool.closeHUD()
+            
+            if succees == true {
+                
+                
+                if let courseModels = self.viewModel.courseModels {
+
+                    let detailVC = BXGCourseDetailVC(courseModel: courseModels[indexPath.row])
+                    detailVC.hidesBottomBarWhenPushed = true
+                    self.navigationController?.pushViewController(detailVC, animated: true)
+                    
+                }
+            }else {
+                // TODO: 弹出HUD
+            }
+        }
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        return viewModel.courseModels?.count ?? 0
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "BXGCourseListCCell", for: indexPath)
+        
+        if let model = viewModel.courseModels?[indexPath.row], let cell = cell as? BXGCourseListCCell {
+            cell.view.model = model
+        }
+        
+        return cell
+    }
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        
+        let width = collectionView.bounds.size.width / 2
+        let height = CGFloat(140 + 30)
+        return CGSize(width: width, height: height)
+    }
+}
+

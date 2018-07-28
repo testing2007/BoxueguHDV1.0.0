@@ -1,0 +1,78 @@
+//
+//  BXGConstrueVC.swift
+//  BoxueguHD
+//
+//  Created by Renying Wu on 2018/7/24.
+//  Copyright © 2018年 itcast. All rights reserved.
+//
+
+import Foundation
+
+class BXGConstrueVC: UIViewController {
+    
+    lazy var viewModel: BXGConstrueViewModel = {
+        return BXGConstrueViewModel()
+    }()
+    init() {
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    lazy var liveVC: BXGConstrueLiveVC = {
+        let vc = BXGConstrueLiveVC(viewModel: viewModel)
+        return vc
+    }()
+    
+    lazy var replayVC: BXGConstrueReplayVC = {
+        let vc = BXGConstrueReplayVC(viewModel: viewModel)
+        return vc
+    }()
+
+    override func viewDidLoad() {
+        installUI()
+        viewModel.load()
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    // MARK: UI
+    
+    lazy var scrollView: UIScrollView = {
+        let scrollView = UIScrollView()
+        scrollView.bounces = false
+        scrollView.isPagingEnabled = true
+//        scrollView.isScrollEnabled = false
+        return scrollView
+    }()
+    
+    func installUI() {
+        
+        addChildViewController(self.liveVC)
+        addChildViewController(self.replayVC)
+        
+        view.addSubview(scrollView)
+        scrollView.snp.makeConstraints { (make) in
+            make.top.equalToSuperview().offset(64)
+            make.left.bottom.right.equalToSuperview()
+        }
+        scrollView.addSubview(self.liveVC.view)
+        scrollView.addSubview(self.replayVC.view)
+        
+        
+        self.liveVC.view.snp.makeConstraints { (make) in
+            make.left.bottom.top.width.height.equalToSuperview()
+        }
+        
+        self.replayVC.view.snp.makeConstraints { (make) in
+            make.right.bottom.top.width.height.equalToSuperview()
+            make.left.equalTo(self.liveVC.view.snp.right)
+        }
+    }
+    func scrollToLiveView() {
+        scrollView.setContentOffset(CGPoint(x: 0, y: 0), animated: true)
+    }
+    
+    func scrollToReplayView() {
+        scrollView.setContentOffset(CGPoint(x: scrollView.bounds.size.width, y: 0), animated: true)
+    }
+}

@@ -1,0 +1,252 @@
+//
+//  BXGDownloadTable.h
+//  FFDBPrj
+//
+//  Created by apple on 17/6/12.
+//  Copyright © 2017年 itheima. All rights reserved.
+//
+
+#import "BXGDownloadTable.h"
+#import "BXGDatabaseAPI.h"
+#import "BXGDownloadPersistAPIModel.h"
+
+@interface BXGDownloadTable()
+@end
+
+@implementation BXGDownloadTable
+
+-(instancetype)init
+{
+    self = [super init];
+    if(self) {
+    }
+    return self;
+}
+
++(BOOL)createTable
+{
+//    @property (nonatomic, strong) NSString *courseId;
+//    @property (nonatomic, strong) NSString *courseName;
+//    @property (nonatomic, strong) NSString *courseType;
+//    @property (nonatomic, strong) NSString *phaseId;
+//    @property (nonatomic, strong) NSString *phaseName;
+//    @property (nonatomic, strong) NSString *phaseSort;
+//    @property (nonatomic, strong) NSString *moduleId;
+//    @property (nonatomic, strong) NSString *moduleName;
+//    @property (nonatomic, strong) NSString *moduleSort;
+//    @property (nonatomic, strong) NSString *sectionId;      //sectionId = 106625
+//    @property (nonatomic, strong) NSString *sectionName;    //sectionName: 考试要求
+//    @property (nonatomic, strong) NSString *sectionSort;    //sort: 42383
+//    @property (nonatomic, strong) NSString *sectionIsPass;  //isPass
+//    @property (nonatomic, strong) NSString *sectionIsTry;   //isTry
+//    @property (nonatomic, strong) NSString *pointId;        //pointId: 10050424
+//    @property (nonatomic, strong) NSString *pointName;      //pointName: 02-环境安装
+//    @property (nonatomic, strong) NSString *pointSort;      //sort: 79078
+//    @property (nonatomic, strong) NSString *videoId;        //videoId: 10050142
+//    @property (nonatomic, strong) NSString *ccVideoId;      //ccVideoId: B65A43879308369C9C33DC5901307461
+    BOOL bResult = YES;
+    bResult = [BXGDATABASE executeUpdate:@"CREATE TABLE if not exists downloadResourceTable(\
+                   userId text NOT NULL, \
+                   courseId text NOT NULL, \
+                   courseName text, \
+                   courseType text /*课程类型 就业班-1, 精品微课-2, 免费微课-3*/, \
+                   phaseId text NOT NULL, \
+                   phaseName text,\
+                   moduleId text NOT NULL,\
+                   moduleName text,\
+                   moduleSort text,\
+                   sectionId text NOT NULL,\
+                   sectionName text, \
+                   sectionSort text, \
+                   sectionIsPass text, \
+                   sectionIsTry text, \
+                   pointId text NOT NULL, \
+                   pointName text, \
+                   pointSort text, \
+                   videoId text NOT NULL, \
+                   ccVideoId text NOT NULL, \
+                   watched integer, \
+                   downloadQualityDesp text, \
+                   downloadUrl text, \
+                   downloadLocalFileName text, \
+                   downloadState integer, \
+                   totalBytesWritten double, \
+                   totalBytesExpectedToWrite double, \
+                   progress double,\
+                   primary key(userId, courseId, phaseId, moduleId, sectionId, pointId, videoId, ccVideoId));"];
+    if(bResult) {
+        NSLog(@"success to create downloadResourceTable");
+    }
+    return bResult;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//将已下载的视频设置为已观看状态
+-(void)updateVideoTableToWatchedStatusWithVideoIdx:(NSString*)videoIdx {
+    NSLog(@"updateVideoTableToWatchedStatusWithVideoIdx");
+}
+
+//添加/更新记录
+-(BOOL)addDownloadItem:(BXGDownloadPersistAPIModel*)item {
+    BOOL bResult = YES;
+    BXGDownloadAPIModel *apiDownloadModel = item.apiDownloaderItem;
+    NSString *sql = [NSString stringWithFormat:@"insert or replace into downloadResourceTable(\
+                     userId, \
+                     courseId, \
+                     courseName, \
+                     courseType/*课程类型 就业班-1, 精品微课-2, 免费微课-3*/, \
+                     phaseId, \
+                     phaseName,\
+                     moduleId,\
+                     moduleName,\
+                     moduleSort,\
+                     sectionId,\
+                     sectionName, \
+                     sectionSort, \
+                     sectionIsPass, \
+                     sectionIsTry, \
+                     pointId, \
+                     pointName, \
+                     pointSort, \
+                     videoId, \
+                     ccVideoId, \
+                     watched, \
+                     downloadQualityDesp, \
+                     downloadUrl, \
+                     downloadLocalFileName, \
+                     downloadState, \
+                     totalBytesWritten, \
+                     totalBytesExpectedToWrite, \
+                     progress) \
+                     values('%@' /*userId*/, \
+                     '%@' /*courseId*/, \
+                     '%@' /*courseName*/, \
+                     '%@' /*courseType 课程类型 就业班-1, 精品微课-2, 免费微课-3*/, \
+                     '%@' /*phaseId*/, \
+                     '%@' /*phaseName*/,\
+                     '%@' /*moduleId*/,\
+                     '%@' /*moduleName*/,\
+                     '%@' /*moduleSort*/,\
+                     '%@' /*sectionId*/,\
+                     '%@' /*sectionName*/, \
+                     '%@' /*sectionSort*/, \
+                     '%@' /*sectionIsPass*/, \
+                     '%@' /*sectionIsTry*/, \
+                     '%@' /*pointId*/, \
+                     '%@' /*pointName*/, \
+                     '%@' /*pointSort*/, \
+                     '%@' /*videoId*/, \
+                     '%@' /*ccVideoId*/, \
+                     %d /*watched*/, \
+                     '%@' /*downloadQualityDesp*/, \
+                     '%@' /*downloadUrl*/, \
+                     '%@' /*downloadLocalFileName*/, \
+                     %ld /*downloadState*/, \
+                     %lld  /*totalBytesWritten*/, \
+                     %lld /*totalBytesExpectedToWrite*/, \
+                     %f  /*progress*/);",
+                     @"userId", //todo [BXGUserDefaults share].userModel.user_id,
+                     apiDownloadModel.courseId,
+                     apiDownloadModel.courseName,
+                     apiDownloadModel.courseType,
+                     apiDownloadModel.phaseId,
+                     apiDownloadModel.phaseName,
+                     apiDownloadModel.moduleId,
+                     apiDownloadModel.moduleName,
+                     apiDownloadModel.moduleSort,
+                     apiDownloadModel.sectionId,
+                     apiDownloadModel.sectionName,
+                     apiDownloadModel.sectionSort,
+                     apiDownloadModel.sectionIsPass,
+                     apiDownloadModel.sectionIsTry,
+                     apiDownloadModel.pointId,
+                     apiDownloadModel.pointName,
+                     apiDownloadModel.pointSort,
+                     apiDownloadModel.videoId,
+                     apiDownloadModel.ccVideoId,
+                     (int)apiDownloadModel.watched,
+                     item.qualityDesp,
+                     item.downloadURL,
+                     item.videoPath,
+                     item.downloadState,
+                     (long long)item.totalBytesWritten,
+                     item.totalBytesExpectedToWrite,
+                     item.progress];
+    bResult &= [BXGDATABASE executeUpdate:sql];
+    if(bResult)
+    {
+        NSLog(@"success to add one record");
+    }
+    else
+    {
+        NSLog(@"fail to add one record, the code=%d, the reason=%@", [BXGDATABASE lastErrorCode], [BXGDATABASE lastErrorMessage]);
+    }
+    return bResult;
+}
+
+-(BOOL)addDownloadItems:(NSArray<BXGDownloadPersistAPIModel*>*)items {
+    BOOL bResult = YES;
+    for (BXGDownloadPersistAPIModel *item in items) {
+        bResult &= [self addDownloadItem:item];
+    }
+    return bResult;
+}
+
+//删除待下载
+-(BOOL)deleteWaitingDownloadItem:(BXGDownloadPersistAPIModel*)item {
+    BOOL bResult = YES;
+    //todo
+    return bResult;
+}
+
+-(BOOL)deleteWaitingDownloadItems:(NSArray<BXGDownloadPersistAPIModel*>*)items {
+    BOOL bResult = YES;
+    for (BXGDownloadPersistAPIModel *item in items) {
+        bResult &= [self deleteWaitingDownloadItem:item];
+    }
+    return bResult;
+}
+
+-(BOOL)deleteAllWaitingDownloadItemsUnderCourseId:(NSString*)courseId {
+    BOOL bResult = YES;
+    //todo
+    return bResult;
+}
+
+-(BOOL)deleteAllWaitingDownloadItems{
+    BOOL bResult = YES;
+    //todo
+    return bResult;
+}
+
+//删除已下载
+-(BOOL)deleteDownloadedItem:(BXGDownloadPersistAPIModel*)item {
+    BOOL bResult = YES;
+    //todo
+    return bResult;
+}
+
+-(BOOL)deleteDownloadedItems:(NSArray<BXGDownloadPersistAPIModel*>*)arrDownloadingModel {
+    BOOL bResult = YES;
+    //todo
+    return bResult;
+}
+
+-(BOOL)deleteAllDownloadedItemsUnderCourseId:(NSString*)courseId{
+    BOOL bResult = YES;
+    //todo
+    return bResult;
+}
+
+-(BOOL)deleteAllDownloadedItems {
+    BOOL bResult = YES;
+    //todo
+    return bResult;
+}
+
+//查询--将查询的数据保存在内存中
+-(NSMutableArray<BXGDownloadPersistAPIModel*>*)searchAllDownloadInfo {
+    return nil;
+}
+
+@end

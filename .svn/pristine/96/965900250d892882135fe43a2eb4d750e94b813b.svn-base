@@ -1,0 +1,110 @@
+//
+//  BXGRefreshTool.m
+//  Boxuegu
+//
+//  Created by RenyingWu on 2017/11/8.
+//  Copyright © 2017年 itcast. All rights reserved.
+//
+
+#import "BXGRefreshTool.h"
+#import "MJRefresh.h"
+#import "UIFont+Extension.h"
+
+@implementation UIColor (BXGRefreshTool)
+
++ (instancetype)colorWithHex:(uint32_t)hex {
+    
+    uint8_t r = (hex & 0xff0000) >> 16;
+    uint8_t g = (hex & 0x00ff00) >> 8;
+    uint8_t b = hex & 0x0000ff;
+    
+    return [self colorWithRed:r green:g blue:b];
+}
+
++ (instancetype)colorWithRed:(uint8_t)red green:(uint8_t)green blue:(uint8_t)blue {
+    return [UIColor colorWithRed:red / 255.0 green:green / 255.0 blue:blue / 255.0 alpha:1.0];
+}
+
+@end
+
+//#import "BoxueguHD-Swift.h"
+@implementation UITableView(BXGRefreshTool)
+- (void)bxg_setHeaderRefreshBlock:(void(^)(void))headerRefreshBlock; {
+    MJRefreshNormalHeader *header = [MJRefreshNormalHeader headerWithRefreshingBlock:headerRefreshBlock];
+    header.stateLabel.font = [UIFont fontWithName:@"PingFangSC-Regular" size:12];
+    
+    header.stateLabel.textColor = [UIColor colorWithHex:666666];
+    header.lastUpdatedTimeLabel.font = [UIFont fontWithName:@"PingFangSC-Regular" size:12];
+    header.lastUpdatedTimeLabel.textColor = [UIColor colorWithHex:666666];
+    self.mj_header = header;
+}
+- (void)bxg_removeHeaderRefresh {
+    self.mj_header = nil;
+}
+- (void)bxg_beginHeaderRefresh {
+    [self.mj_header beginRefreshing];
+}
+- (void)bxg_endHeaderRefresh {
+    [self.mj_header endRefreshing];
+}
+
+- (void)bxg_setFootterRefreshBlock:(void(^)(void))footterRefreshBlock {
+    MJRefreshAutoNormalFooter *footter =  [MJRefreshAutoNormalFooter footerWithRefreshingBlock:footterRefreshBlock];
+    footter.stateLabel.font = [UIFont fontWithName:@"PingFangSC-Regular" size:12];
+    footter.stateLabel.textColor = [UIColor colorWithHex:666666];
+    self.mj_footer = footter;
+}
+- (void)bxg_removeFootterRefresh {
+    self.mj_footer = nil;
+}
+- (void)bxg_beginFootterRefresh {
+    [self.mj_footer beginRefreshing];
+}
+- (void)bxg_endFootterRefresh {
+    [self.mj_footer endRefreshing];
+}
+- (void)bxg_endFootterRefreshNoMoreData {
+    [self.mj_footer endRefreshingWithNoMoreData];
+}
+@end
+
+@implementation UICollectionView(BXGRefreshTool)
+- (void)bxg_setHeaderRefreshBlock:(void(^)(void))headerRefreshBlock; {
+    MJRefreshNormalHeader *header = [MJRefreshNormalHeader headerWithRefreshingBlock:headerRefreshBlock];
+    header.stateLabel.font = [UIFont fontWithName:@"PingFangSC-Regular" size:12];
+    header.stateLabel.textColor = [UIColor colorWithHex:666666];
+    header.lastUpdatedTimeLabel.font = [UIFont fontWithName:@"PingFangSC-Regular" size:12];
+    header.lastUpdatedTimeLabel.textColor = [UIColor colorWithHex:666666];
+    self.mj_header = header;
+}
+- (void)bxg_removeHeaderRefresh {
+    self.mj_header = nil;
+}
+- (void)bxg_beginHeaderRefresh {
+    [self.mj_header beginRefreshing];
+}
+- (void)bxg_endHeaderRefresh {
+    [self.mj_header endRefreshing];
+}
+- (void)bxg_setFootterRefreshBlock:(void(^)(void))footterRefreshBlock {
+    MJRefreshAutoNormalFooter *footter =  [MJRefreshAutoNormalFooter footerWithRefreshingBlock:footterRefreshBlock];
+    footter.stateLabel.font = [UIFont fontWithName:@"PingFangSC-Regular" size:12];
+    footter.stateLabel.textColor = [UIColor colorWithHex:666666];
+    self.mj_footer = footter;
+}
+- (void)bxg_removeFootterRefresh {
+    self.mj_footer = nil;
+}
+- (void)bxg_beginFootterRefresh {
+    [self.mj_footer beginRefreshing];
+}
+- (void)bxg_endFootterRefresh {
+    [self.mj_footer endRefreshing];
+}
+- (void)bxg_endFootterRefreshNoMoreData {
+    [self.mj_footer endRefreshingWithNoMoreData];
+}
+@end
+
+
+

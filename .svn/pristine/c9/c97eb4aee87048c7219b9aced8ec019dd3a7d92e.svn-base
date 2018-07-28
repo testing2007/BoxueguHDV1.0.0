@@ -1,0 +1,361 @@
+//
+//  BXGSectionExamResultVC.swift
+//  BoxueguHD
+//
+//  Created by mynSoo Wu on 2018/7/21.
+//  Copyright © 2018年 itcast. All rights reserved.
+//
+
+import Foundation
+
+enum BXGSectionExamResultTableViewDataSourceType {
+    case questionCell(questionType: BXGStudySectionExamQuestionType, questionHead: String?)
+    case imageCell
+    case optionCell
+    case rightAnswerCell(rightAnswer: [String]?)
+    case analyseCell(analyse: String?)
+    case separatorCell
+}
+
+class BXGSectionExamResultImageCell: UITableViewCell {
+    
+}
+
+class BXGSectionExamResultOptionCell: UITableViewCell {
+    
+}
+
+class BXGSectionExamResultVC: UIViewController {
+
+    lazy var tableViewDataSource: [BXGSectionExamResultTableViewDataSourceType] = {
+        return [BXGSectionExamResultTableViewDataSourceType]()
+    }()
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        self.tableViewDataSource.removeAll()
+        viewModel?.postSectionExamAnswer(finished: { (finished, msg) in
+            if let examResultModel = self.viewModel?.examResultModel {
+                self.setHeaderInfo(examCount: examResultModel.totalQuestionCount ?? 0,
+                                   rightCount: Int(examResultModel.rightQuestionCount ?? 0),
+                                   accuracy: Float(examResultModel.accuracy ?? 0),
+                                   advice:examResultModel.advise)
+                
+                if let examModels = examResultModel.sectionTestDetailVos {
+                    
+                    for (index, examModel) in examModels.enumerated() {
+                        
+                        if let questionType = examModel.appQuestionType {
+                            self.tableViewDataSource.append(BXGSectionExamResultTableViewDataSourceType.questionCell(questionType: questionType, questionHead: examModel.appQuestionHead))
+                            
+                            if let imgList = examModel.appImageList {
+                                for img in imgList {
+                                    self.tableViewDataSource.append(BXGSectionExamResultTableViewDataSourceType.imageCell)
+                                }
+                            }
+                            
+                            self.tableViewDataSource.append(BXGSectionExamResultTableViewDataSourceType.rightAnswerCell(rightAnswer: examModel.appStandardAnswers))
+                            self.tableViewDataSource.append(BXGSectionExamResultTableViewDataSourceType.analyseCell(analyse: examModel.appSolution))
+                            
+                            if let analyseImgList = examModel.appSolutionImageList {
+                                for img in analyseImgList {
+                                    self.tableViewDataSource.append(BXGSectionExamResultTableViewDataSourceType.imageCell)
+                                }
+                            }
+                            
+                            if index != examModels.count - 1 {
+                                self.tableViewDataSource.append(BXGSectionExamResultTableViewDataSourceType.separatorCell)
+                            }
+                        }
+                    }
+                }
+            }
+            self.view.layoutIfNeeded()
+            self.tableView.tableHeaderView = self.headerView
+            self.tableView.reloadData()
+        })
+        
+    }
+    
+    var viewModel: BXGSectionExamViewModel?
+    init(viewModel from: BXGSectionExamViewModel) {
+        viewModel = from
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    lazy var headerView: BXGSectionExamResultHeaderView = {
+        let view = BXGSectionExamResultHeaderView()
+        return view
+    }()
+    
+    lazy var headerExamResultInfoView: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor.hexColor(hex: 0xE0E4E7)
+        return view
+    }()
+    
+    lazy var headerExamResultInfoLb: UILabel = {
+        let view = UILabel()
+        view.textColor = UIColor.themeColor
+        view.font = UIFont.pingFangSCRegular(withSize: 16)
+        return view
+    }()
+    
+    lazy var headerAdviceTagView: UIView = {
+        let view = UIView()
+       
+        let dotView = UIView()
+        dotView.backgroundColor = UIColor.themeColor
+        
+        let tagLb = UILabel()
+        tagLb.font = UIFont.pingFangSCRegular(withSize: 16)
+        tagLb.textColor = UIColor.hexColor(hex: 0x34495E)
+        tagLb.text = "学习建议"
+        view.addSubview(tagLb)
+        view.addSubview(dotView)
+    
+        dotView.snp.makeConstraints { (make) in
+            make.centerY.equalTo(tagLb)
+            make.left.equalTo(25)
+            make.width.height.equalTo(5)
+        }
+        dotView.layer.cornerRadius = 2.5
+        
+        tagLb.snp.makeConstraints { (make) in
+            make.left.equalTo(dotView.snp.right).offset(5)
+            make.top.equalTo(20)
+        }
+        return view
+    }()
+    
+    lazy var headerAdviceTagLb: UILabel = {
+        let view = UILabel()
+        view.textColor = UIColor.hexColor(hex: 0x34495E)
+        view.font = UIFont.pingFangSCRegular(withSize: 16)
+        return view
+    }()
+    
+    lazy var headerAnswerTagView: UIView = {
+        let view = UIView()
+        
+        let dotView = UIView()
+        dotView.backgroundColor = UIColor.themeColor
+        
+        let tagLb = UILabel()
+        tagLb.font = UIFont.pingFangSCRegular(withSize: 16)
+        tagLb.textColor = UIColor.hexColor(hex: 0x34495E)
+        tagLb.text = "题目答案"
+        view.addSubview(tagLb)
+        view.addSubview(dotView)
+        
+        dotView.snp.makeConstraints { (make) in
+            make.centerY.equalTo(tagLb)
+            make.left.equalTo(25)
+            make.width.height.equalTo(5)
+        }
+        dotView.layer.cornerRadius = 2.5
+        
+        tagLb.snp.makeConstraints { (make) in
+            make.left.equalTo(dotView.snp.right).offset(5)
+            make.top.equalTo(30)
+        }
+        return view
+    }()
+
+    func setHeaderInfo(examCount: Int, rightCount: Int, accuracy: Float, advice: String?) {
+        headerExamResultInfoLb.text = "共\(examCount)道题，答对了\(rightCount)道题，正确率：\(accuracy)%"
+        headerAdviceTagLb.text = advice
+    }
+    
+    lazy var tableView: UITableView = {
+        let view = UITableView()
+        view.delegate = self
+        view.dataSource = self
+        view.register(BXGSectionExamResultQuestionCell.self, forCellReuseIdentifier: BXGSectionExamResultQuestionCell.description())
+        view.register(BXGSectionExamResultImageCell.self, forCellReuseIdentifier: BXGSectionExamResultImageCell.description())
+        view.register(BXGSectionExamResultOptionCell.self, forCellReuseIdentifier: BXGSectionExamResultOptionCell.description())
+        view.register(BXGSectionExamResultRightAnswerCell.self, forCellReuseIdentifier: BXGSectionExamResultRightAnswerCell.description())
+        view.register(BXGSectionExamResultAnalyseCell.self, forCellReuseIdentifier: BXGSectionExamResultAnalyseCell.description())
+        view.register(BXGSectionExamResultSeparatorCell.self, forCellReuseIdentifier: BXGSectionExamResultSeparatorCell.description())
+        view.separatorStyle = .none
+        return view
+    }()
+    
+    lazy var footerView: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor.hexColor(hex: 0xE0E4E7)
+        return view
+    }()
+    lazy var footerRetryBtn: UIButton = {
+        let view = UIButton()
+        view.setTitle("重新测试", for: UIControlState.normal)
+        return view
+    }()
+    
+    lazy var footerContinueBtn: UIButton = {
+        let view = UIButton()
+        view.setTitle("继续学习", for: UIControlState.normal)
+        return view
+    }()
+    
+//    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+//        viewModel?.postSectionExamAnswer(finished: { (finished, msg) in
+//            print()
+//        })
+//    }
+    
+    func installUI() {
+        view.addSubview(tableView)
+        view.addSubview(footerView)
+        footerView.addSubview(footerRetryBtn)
+        footerView.addSubview(footerContinueBtn)
+        
+        footerView.snp.makeConstraints { (make) in
+            make.left.bottom.right.equalToSuperview()
+            make.height.equalTo(49)
+        }
+        
+        footerContinueBtn.snp.makeConstraints { (make) in
+            make.right.equalToSuperview().offset(-25)
+            make.centerY.equalToSuperview()
+        }
+        
+        footerRetryBtn.snp.makeConstraints { (make) in
+            make.right.equalTo(footerContinueBtn.snp.left).offset(-25)
+            make.centerY.equalToSuperview()
+        }
+        
+        tableView.snp.makeConstraints { (make) in
+            make.left.right.equalToSuperview()
+            make.top.equalToSuperview()
+            make.bottom.equalTo(footerView.snp.top)
+        }
+        
+        tableView.tableHeaderView = headerView
+        headerView.snp.makeConstraints { (make) in
+            make.edges.equalToSuperview()
+        }
+        headerView.snp.makeConstraints { (make) in
+            make.width.equalTo(view.bounds.size.width)
+        }
+        headerView.addSubview(headerExamResultInfoView)
+        headerExamResultInfoView.snp.makeConstraints { (make) in
+            make.top.equalToSuperview()
+            make.left.right.equalToSuperview()
+            make.height.equalTo(49)
+            
+        }
+        headerExamResultInfoView.addSubview(headerExamResultInfoLb)
+        headerExamResultInfoLb.snp.makeConstraints { (make) in
+            make.centerY.equalToSuperview()
+            make.left.equalToSuperview().offset(25)
+            make.right.equalToSuperview().offset(-25)
+        }
+        headerView.addSubview(headerAdviceTagView)
+        headerAdviceTagView.snp.makeConstraints { (make) in
+            make.top.equalTo(headerExamResultInfoView.snp.bottom)
+            make.left.right.equalToSuperview()
+            make.height.equalTo(44)
+        }
+        
+        headerView.addSubview(headerAdviceTagLb)
+        headerAdviceTagLb.snp.makeConstraints { (make) in
+            make.left.equalToSuperview().offset(25)
+            make.right.equalToSuperview().offset(-25)
+            make.width.equalToSuperview()
+            make.top.equalTo(headerAdviceTagView.snp.bottom)
+            
+        }
+        headerView.addSubview(headerAnswerTagView)
+        headerAnswerTagView.snp.makeConstraints { (make) in
+            make.top.equalTo(headerAdviceTagLb.snp.bottom)
+            make.left.right.equalToSuperview()
+            make.height.equalTo(54)
+            make.bottom.equalToSuperview()
+        }
+        
+//        lazy var headerExamResultInfoView: UIView = {
+//            let view = UIView()
+//            view.backgroundColor = UIColor.hexColor(hex: 0xE0E4E7)
+//            return view
+//        }()
+//
+//        lazy var headerExamResultInfoLb: UILabel = {
+//            let view = UILabel()
+//            view.textColor = UIColor.themeColor
+//            view.font = UIFont.pingFangSCRegular(withSize: 16)
+//            return view
+//        }()
+        
+        
+        
+        view.layoutIfNeeded()
+        tableView.tableHeaderView = headerView
+        
+    }
+    
+    override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
+        super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        installUI()
+//        view.backgroundColor = UIColor.random()
+    }
+}
+
+extension BXGSectionExamResultVC: UITableViewDelegate, UITableViewDataSource {
+    
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return tableViewDataSource.count
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        
+        switch tableViewDataSource[indexPath.row] {
+            
+        case .questionCell(let questionType,let questionHead):
+            let cell = tableView.dequeueReusableCell(withIdentifier: BXGSectionExamResultQuestionCell.description(), for: indexPath)
+            if let cell = cell as? BXGSectionExamResultQuestionCell {
+                cell.installData(type: questionType, title: questionHead)
+            }
+            return cell
+        case .imageCell:
+            let cell = tableView.dequeueReusableCell(withIdentifier: BXGSectionExamResultImageCell.description(), for: indexPath)
+            cell.backgroundColor = UIColor.blue
+            return cell
+        case .optionCell:
+            let cell = tableView.dequeueReusableCell(withIdentifier: BXGSectionExamResultOptionCell.description(), for: indexPath)
+            cell.backgroundColor = UIColor.orange
+            return cell
+        case .rightAnswerCell(let rightAnswer):
+            let cell = tableView.dequeueReusableCell(withIdentifier: BXGSectionExamResultRightAnswerCell.description(), for: indexPath)
+            if let cell = cell as? BXGSectionExamResultRightAnswerCell {
+                cell.installModel(string: rightAnswer)
+            }
+            return cell
+        case .analyseCell(let analyse):
+            let cell = tableView.dequeueReusableCell(withIdentifier: BXGSectionExamResultAnalyseCell.description(), for: indexPath)
+            if let cell = cell as? BXGSectionExamResultAnalyseCell {
+                cell.installModel(analyse: analyse)
+            }
+
+            return cell
+        case .separatorCell:
+            let cell = tableView.dequeueReusableCell(withIdentifier: BXGSectionExamResultSeparatorCell.description(), for: indexPath)
+            return cell
+        }
+    }
+    
+}
+
+
+
+
+
+

@@ -1,0 +1,46 @@
+//
+//  BXGDownloadCC.h
+//  Demo
+//
+//  Created by apple on 2018/7/2.
+//  Copyright © 2018年 com.bokecc.www. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import "BXGDownloadCCDelegate.h"
+@class BXGDownloadCCModel;
+@class BXGDownloadEnvSource;
+
+@interface BXGDownloadCC : NSObject
+
+//-(instancetype)initWithDelegate:(id<BXGDownloadCCDelegate>)delegate;
+-(instancetype)initWithDownloadDelegate:(id<BXGDownloadCCDelegate>)delegate
+                   andDownloadEvnSource:(BXGDownloadEnvSource*)envSource;
+
+-(void)addDownloadItem:(BXGDownloadCCModel*)downloadItem;
+-(void)addDownloadItems:(NSArray<BXGDownloadCCModel*>*)downloadItems;
+-(void)start;//启动下载等待列表中的资源
+
+///全部下载
+-(void)allStartDownload:(NSArray<BXGDownloadCCModel*>*)arrDownloadItem;
+///开始下载指定文件
+-(void)startDownloadItem:(BXGDownloadCCModel*)downloadItem;
+
+///全部暂停
+-(void)allPauseDownload;
+///暂停下载指定文件
+-(void)pauseDownloadItem:(BXGDownloadCCModel*)downloadItem;
+///重新下载指定文件
+-(void)resumeDownloadItem:(BXGDownloadCCModel*)downloadItem;;
+
+///取消下载指定文件
+-(void)cancelDownloadItem:(BXGDownloadCCModel*)downloadItem;
+-(void)cancelDownloadItems:(NSArray<BXGDownloadCCModel*>*)arrDownloadItem;
+
+///指定开始下载的最大并发数
+@property (nonatomic, assign) NSInteger maxConcurrentDownloadNums;
+
+@property (nonatomic, weak) id<BXGDownloadCCDelegate> delegate;
+
+
+@end

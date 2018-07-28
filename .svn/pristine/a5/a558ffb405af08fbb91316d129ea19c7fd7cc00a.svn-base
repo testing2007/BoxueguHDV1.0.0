@@ -1,0 +1,186 @@
+//
+//  BXGCourseViewModel.swift
+//  BoxueguHD
+//
+//  Created by Renying Wu on 2018/7/12.
+//  Copyright © 2018年 itcast. All rights reserved.
+//
+
+import UIKit
+import SwiftyJSON
+import ObjectMapper
+
+class BXGResultModelItem: Mappable  {
+    var stuPhaseStatus: Int? // 2
+    var phaseName: String? // "开始"
+    var phaseId: Int? // 88
+    
+    required init?(map: Map) {
+        
+    }
+    
+    func mapping(map: Map) {
+        stuPhaseStatus <- map["stuPhaseStatus"]
+        phaseName <- map["phaseName"]
+        phaseId <- map["phaseId"]
+    }
+}
+class BXGResultModel:Mappable  {
+    
+    var dayHasStudy: String? // "122"
+    var courseLearningProgress: String? // "0.00"
+    var menuName: String? // "JS"
+    var userCourseStatus: Int? // 1
+    var dayLeftForService: String? // "243"
+    var phaseDiagramList: [BXGResultModelItem]?
+    var oldStuCourse: Bool? // true
+    var courseName: String? // "前端就业课程【UI交稿用】"
+    var courseType: Int? // 0
+    var studentCourseId: Int? // 382
+    var showPhaseExtend: Bool? // false
+    var menuId: Int? // 251
+    var courseId: Int? // 867
+    var studentId: String? // "0d7f13bd166a4f7ebeddc3d113eea02f"
+    
+    required init?(map: Map) {
+    }
+    
+    func mapping(map: Map) {
+        dayHasStudy <- map["dayHasStudy"]
+        courseLearningProgress <- map["courseLearningProgress"]
+        menuName <- map["menuName"]
+        userCourseStatus <- map["userCourseStatus"]
+        dayLeftForService <- map["dayLeftForService"]
+        phaseDiagramList <- map["phaseDiagramList"]
+        oldStuCourse <- map["oldStuCourse"]
+        courseName <- map["courseName"]
+        courseType <- map["courseType"]
+        studentCourseId <- map["studentCourseId"]
+        showPhaseExtend <- map["showPhaseExtend"]
+        menuId <- map["menuId"]
+        courseId <- map["courseId"]
+        studentId <- map["studentId"]
+
+    }
+
+}
+
+
+class BXGCourseViewModel {
+    
+    public var courseModels: [BXGStudyCourseModel]?
+    public var set: Set<Int> = Set<Int>()
+    
+    public func requestQuerySDAndAggregation(courseId: Int, finished: @escaping (_ success: Bool,_ message: String) ->()) {
+        BXGNetworkManager.request(api: BXGNetworkApp2API.courseStudyCenterQuerySDAndAggregation(courseId: courseId)) { (response) in
+            switch response {
+            case .success(let status, let message, let result):
+                if(status == 200) {
+                    let json = JSON(result)
+                    let model = Mapper<BXGResultModel>().map(JSONObject: json.dictionaryObject)
+                    print("model")
+                    print(model)
+                }
+            case .failure(let error):break;
+                
+            }
+        }
+    }
+    
+    public func requestStudentApplyInformationPerfect(finished: @escaping (_ success: Bool,_ message: String) ->()) {
+        BXGNetworkManager.request(api: BXGNetworkApp2API.courseStudyCenterStudentApplyInformationPerfect()) { (response) in
+            switch response {
+            case .success(let status, let message, let result):
+                if(status == 200) {
+                    if let b = JSON(result).bool, b {
+                        // 成功
+                        print("succeed")
+                        finished(true, "成功")
+                        return
+                    }else {
+                        finished(false, message)
+                        return
+                    }
+                }
+            case .failure(let error):break;
+            finished(false, "网络异常")
+                return
+            }
+        }
+    }
+    
+    public func requestStudyCourse(finished: @escaping (_ success: Bool,_ message: String) ->()) {
+        
+        BXGNetworkManager.request(api: BXGNetworkApp2API.courseStudyCenterEmploymentCourse()) { [unowned self](response) in
+            var responseArrary = [BXGStudyCourseModel]()
+            var requestFailed = false
+            
+            
+            switch response {
+            case .success(let status, _, let result):
+                print(response)
+                
+                if (status == 200) {
+                    
+                    if let result = result {
+                        let json = JSON(result).arrayObject
+                        let any = Mapper<BXGStudyCourseModel>().mapArray(JSONObject: json)
+                        
+                        if let array = any {
+                            for m in array {
+                                m.type = .employmentCourse
+                            }
+                            responseArrary.append(contentsOf: array)
+                        }
+                    }
+                }else {
+                    requestFailed = true
+                }
+                
+            case .failure(_):
+                print(response)
+                requestFailed = true
+            }
+            
+            BXGNetworkManager.request(api: BXGNetworkApp2API.courseStudyCenterMicroCourse(pageNumber: 1, pageSize: 10000)) { (response) in
+                switch response {
+                case .success(let status, _, let result):
+                    
+                    if (status == 200) {
+                        
+                        if let result = result {
+                            let json = JSON(result)
+                            let json2 = json["list"]
+                            
+                            let any = Mapper<BXGStudyCourseModel>().mapArray(JSONObject: json2.arrayObject)
+                            if let array = any {
+                                for m in array {
+                                    m.type = .microCourse
+                                }
+                                responseArrary.append(contentsOf: array)
+                            }
+                        }
+                    }else {
+                        requestFailed = true
+                    }
+                   
+                    print(response)
+                case .failure(_):
+                    print(response)
+                    requestFailed = true
+                }
+                
+                // 回调
+                if(responseArrary.count == 0 && requestFailed == true) {
+                    
+                    self.courseModels = nil
+                    finished(false, "加载失败")
+                }else {
+                    
+                    self.courseModels = responseArrary
+                    finished(true, "")
+                }
+            }
+        }
+    }
+}

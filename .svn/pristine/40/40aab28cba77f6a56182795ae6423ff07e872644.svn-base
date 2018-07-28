@@ -1,0 +1,106 @@
+//
+//  BXGNetworkApp01API.swift
+//  BoxueguHD
+//
+//  Created by Renying Wu on 2018/7/11.
+//  Copyright © 2018年 itcast. All rights reserved.
+//
+
+import Foundation
+import SwiftyJSON
+
+class BXGNetworkApp01ParserItem {
+    var success: Bool?
+    var errorMessage: String?
+    var resultObject: Any?
+    
+    init(jsonData: JSON) {
+        success    = jsonData["success"].bool
+        errorMessage = jsonData["errorMessage"].string
+        resultObject  = jsonData["resultObject"]
+    }
+}
+
+class BXGNetworkApp01Parser: BXGNetworkAPIParser {
+    
+    func parse(_ data: Data) -> NetworkResponse {
+        
+        var status = 500
+        var message = ""
+        do {
+            print("data: \(data)")
+            // status
+            let jsonData = try JSON(data: data)
+            let item = BXGNetworkApp01ParserItem.init(jsonData: jsonData)
+            
+            if let success = item.success {
+                if(success) {
+                    status = 200
+                }else {
+                    status = 400
+                }
+            }else {
+                status = 500
+            }
+            
+            if let msg = item.errorMessage {
+                if(msg == "1001") {
+                    status = 401
+                    message = "用户已过期"
+                }else {
+                    message = msg
+                }
+            }else {
+                message = "";
+            }
+            
+            print("item: \(item)")
+            return .success(status: status, message: message, result: item.resultObject)
+            
+        }catch {
+            // json 解析错误
+            status = 500
+            message = "JSON解析错误"
+            print("\(status)\n\(message)\n")
+            return .success(status: 500, message: message, result: nil)
+        }
+    }
+}
+
+enum BXGNetworkApp1API {
+    case login(username: String, password: String)
+}
+
+extension BXGNetworkApp1API: BXGTargetType {
+    var parser: BXGNetworkAPIParser {
+        return BXGNetworkApp01Parser()
+    }
+    
+    var cachePolicy: NetworkCachePolicy {
+        return .none
+    }
+    
+    var parameters: [String : Any]? {
+        switch self {
+        case .login(let username, let password):
+            return ["username":username, "password":password]
+        }
+    }
+    
+    var baseURL: URL {
+        return BXGNetworkBaseURL.app.baseURL
+    }
+    
+    var path: String {
+        switch self {
+        case .login(username: _, password: _):
+            return "/user/login/"
+        }
+    }
+    
+    var headers: [String : String]? {
+        return nil
+    }
+    
+    
+}

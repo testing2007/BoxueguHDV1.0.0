@@ -1,0 +1,122 @@
+//
+//  BXGDownloadAPIModel.m
+//  Demo
+//
+//  Created by apple on 2018/7/5.
+//  Copyright © 2018年 com.bokecc.www. All rights reserved.
+//
+
+#import "BXGDownloadAPIModel.h"
+
+@interface BXGDownloadAPIModel()
+@end
+@implementation BXGDownloadAPIModel
+
+- (id)copyWithZone:(nullable NSZone *)zone {
+    BXGDownloadAPIModel *copyObj = [BXGDownloadAPIModel allocWithZone:zone];
+    copyObj.courseId = self.courseId.copy;
+    copyObj.courseName = self.courseName.copy;
+    copyObj.courseType      = self.courseType.copy;
+    copyObj.phaseId =  self.phaseId.copy;
+    copyObj.phaseName = self.phaseName.copy;
+    copyObj.phaseSort =  self.phaseSort.copy;
+    copyObj.moduleId = self.moduleId.copy;
+    copyObj.moduleName = self.moduleName.copy;
+    copyObj.moduleSort = self.moduleSort.copy;
+    copyObj.sectionId      = self.sectionId.copy;
+    copyObj.sectionName   = self.sectionName.copy;
+    copyObj.sectionSort   = self.sectionSort.copy;
+    copyObj.sectionIsPass  = self.sectionIsPass.copy;
+    copyObj.sectionIsTry   = self.sectionIsTry.copy;
+    copyObj.pointId       = self.pointId.copy;
+    copyObj.pointName     = self.pointName.copy;
+    copyObj.pointSort      = self.pointSort.copy;
+    copyObj.videoId   = self.videoId.copy;
+    copyObj.ccVideoId =  self.ccVideoId.copy;
+    copyObj.watched = self.watched;
+    return copyObj;
+}
+- (id)mutableCopyWithZone:(nullable NSZone *)zone {
+    
+    BXGDownloadAPIModel *copyObj = [BXGDownloadAPIModel allocWithZone:zone];
+    copyObj.courseId = self.courseId.mutableCopy;
+    copyObj.courseName = self.courseName.mutableCopy;
+    copyObj.courseType      = self.courseType.mutableCopy;
+    copyObj.phaseId =  self.phaseId.mutableCopy;
+    copyObj.phaseName = self.phaseName.mutableCopy;
+    copyObj.phaseSort =  self.phaseSort.mutableCopy;
+    copyObj.moduleId = self.moduleId.mutableCopy;
+    copyObj.moduleName = self.moduleName.mutableCopy;
+    copyObj.moduleSort = self.moduleSort.mutableCopy;
+    copyObj.sectionId      = self.sectionId.mutableCopy;
+    copyObj.sectionName   = self.sectionName.mutableCopy;
+    copyObj.sectionSort   = self.sectionSort.mutableCopy;
+    copyObj.sectionIsPass  = self.sectionIsPass.mutableCopy;
+    copyObj.sectionIsTry   = self.sectionIsTry.mutableCopy;
+    copyObj.pointId       = self.pointId.mutableCopy;
+    copyObj.pointName     = self.pointName.mutableCopy;
+    copyObj.pointSort      = self.pointSort.mutableCopy;
+    copyObj.videoId   = self.videoId.mutableCopy;
+    copyObj.ccVideoId =  self.ccVideoId.mutableCopy;
+    copyObj.watched = self.watched;
+    
+    return copyObj;
+}
+
+-(instancetype)initWithCourseId:(NSString* _Nonnull)courseId
+                  andCourseName:(NSString* _Nonnull)courseName
+                  andCourseType:(NSString* _Nonnull)courseType
+                     andPhaseId:(NSString* _Nonnull)phaseId
+                   andPhaseName:(NSString* _Nonnull)phaseName
+                   andPhaseSort:(NSString* _Nonnull)phaseSort
+                    andModuleId:(NSString* _Nonnull)moduleId
+                  andModuleName:(NSString* _Nonnull)moduleName
+                  andModuleSort:(NSString* _Nonnull)moduleSort
+                   andSectionId:(NSString* _Nonnull)sectionId
+                 andSectionName:(NSString* _Nonnull)sectionName
+                 andSectionSort:(NSString* _Nonnull)sectionSort
+               andSectionIsPass:(NSString* _Nullable)sectionIsPass
+                andSectionIsTry:(NSString* _Nullable)sectionIsTry
+                     andPointId:(NSString* _Nonnull)pointId
+                   andPointName:(NSString* _Nonnull)pointName
+                   andPointSort:(NSString* _Nonnull)pointSort
+                     andVideoId:(NSString* _Nonnull)videoId
+                   andCCVideoId:(NSString* _Nonnull)ccVideoId
+                   andIsWatched:(BOOL)watched {
+    self = [super init];
+    if(self) {
+        self.courseId = courseId;
+        self.courseName = courseName;
+        self.courseType      = courseType;
+        self.phaseId =  phaseId;
+        self.phaseName = phaseName;
+        self.phaseSort =  phaseSort;
+        self.moduleId = moduleId;
+        self.moduleName = moduleName;
+        self.moduleSort = moduleSort;
+        self.sectionId      = sectionId;
+        self.sectionName   = sectionName;
+        self.sectionSort   = sectionSort;
+        self.sectionIsPass  = sectionIsPass;
+        self.sectionIsTry   = sectionIsTry;
+        self.pointId       = pointId;
+        self.pointName     = pointName;
+        self.pointSort      = pointSort;
+        self.videoId   = videoId;
+        self.ccVideoId =  ccVideoId;
+        self.watched = watched;
+    }
+    return self;
+}
+
+-(NSString *)generateCustomId {
+    NSAssert(self.courseId!=nil, @"generateCustomId courseId is nil");
+    NSAssert(self.phaseId!=nil, @"generateCustomId phaseId is nil");
+    NSAssert(self.moduleId!=nil, @"generateCustomId moduleId is nil");
+    NSAssert(self.sectionId!=nil, @"generateCustomId sectionId is nil");
+    NSAssert(self.pointId!=nil, @"generateCustomId pointId is nil");
+    NSAssert(self.videoId!=nil, @"generateCustomId videoId is nil");
+    return [[NSString alloc] initWithFormat:@"%@_%@_%@_%@_%@_%@", self.courseId, self.phaseId, self.moduleId, self.sectionId, self.pointId, self.videoId];
+}
+
+@end

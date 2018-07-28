@@ -1,0 +1,119 @@
+//
+//  BXGDownloadSplitVC.swift
+//  BoxueguHD
+//
+//  Created by apple on 2018/7/10.
+//  Copyright © 2018年 itheima. All rights reserved.
+//
+
+import UIKit
+
+class BXGDownloadSplitVC: BXGBaseRootVC {
+
+    var menuItems:NSArray = ["1111", "2222", "33333"];
+    var observer:NSMutableDictionary?
+    var detailView:UIView?;
+    var detailVC:UIViewController?;
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        // Do any additional setup after loading the view.
+        self.view.backgroundColor = UIColor.blue;
+        
+        if(menuItems != nil) {
+            let menuTableVC:BXGDownloadSplitMenuTableVC = BXGDownloadSplitMenuTableVC(items: menuItems)
+            menuTableVC.menuDelegate = self;
+            let menuNav:UINavigationController = UINavigationController.init(rootViewController: menuTableVC);
+            menuTableVC.navigationItem.leftBarButtonItem = UIBarButtonItem(title: "<返回", style: .plain, target: self, action:#selector(BXGDownloadSplitVC.onBack));
+//            menuNav.navigationBar.isTranslucent = true;
+//            [menuNav.navigationBar setBackgroundImage:[UIImage new] forBarMetrics:UIBarMetricsDefault];
+//            [menuNav.navigationBar setShadowImage:[UIImage new]];
+//            menuNav.navigationBar.setBackgroundImage(UIImage.init(ciImage: CIImage.init(color: CIColor.gray)), for: .default)
+//            menuNav.navigationBar.shadowImage = UIImage.init(CIImage.init(color: CIColor.gray));
+//            [menuNav.navigationBar setBackgroundImage:[UIImage imageFromColor:[UIColor colorWithHex:0x38ADFF] frame:CGRectMake(0, 0, 1, 1)] forBarMetrics:UIBarMetricsDefault];
+//            [menuNav.navigationBar setShadowImage:[UIImage imageFromColor:[UIColor colorWithHex:0x38ADFF] frame:CGRectMake(0, 0, 1, 1)]];
+//            [menuNav.navigationBar setTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:[UIColor whiteColor],NSForegroundColorAttributeName,nil]];
+//            menuNav.navigationBar.translucent = true;
+//
+//
+//            if(self.navibackgroundView == nil) {
+//                UIView *navibackgroundView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, [UIScreen mainScreen].bounds.size.width, 64)];
+//                [self.view insertSubview:navibackgroundView belowSubview:self.view.subviews[0]];
+//                navibackgroundView.backgroundColor = [UIColor colorWithHex:0x38ADFF];
+//                self.navibackgroundView = navibackgroundView;
+//            }
+//            menuNav.navigationBar.backgroundColor = UIColor.black;
+//            detailView = UIView();
+//            self.view.addSubview(detailView!);
+//
+            let detailVC:BXGDownloadSplitDetailVC = BXGDownloadSplitDetailVC();
+            detailVC.view.backgroundColor = UIColor.purple;
+            let detailNav:UINavigationController = UINavigationController.init(rootViewController: detailVC);
+            detailNav.navigationBar.isTranslucent = false;
+            self.addChildViewController(menuNav);
+            self.view.addSubview(menuNav.view);
+            self.addChildViewController(detailNav);
+            self.view.addSubview(detailNav.view);
+            
+            menuNav.view.snp.makeConstraints { (make) in
+                make.left.equalTo(0);
+                make.top.equalTo(0);
+                make.bottom.equalTo(0);
+                make.width.equalTo(200);
+                //            make.width.equalTo(UIScreen.main.bounds.size.width).multipliedBy(0.3);
+            }
+            
+            detailNav.view.snp.makeConstraints { (make) in
+                make.left.equalTo(menuNav.view.snp.right).offset(0);
+                make.right.equalTo(0);
+                make.top.equalTo(0);
+                make.bottom.equalTo(0);
+            }
+            
+            self.detailVC = detailVC;
+        }
+        
+    }
+    
+    @objc func onBack() {
+        NSLog("onBack");
+        self.navigationController?.popViewController(animated: true)
+        self.navigationController?.navigationBar.isHidden = false;
+    }
+
+    override func didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+        // Dispose of any resources that can be recreated.
+    }
+    
+
+    /*
+    // MARK: - Navigation
+
+    // In a storyboard-based application, you will often want to do a little preparation before navigation
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        // Get the new view controller using segue.destinationViewController.
+        // Pass the selected object to the new view controller.
+    }
+    */
+
+}
+
+extension BXGDownloadSplitVC : BXGDownloadSplitMenuDelegate {
+    func indexPageKey(pagekey: String) {
+        //新
+        let detailVC:BXGDownloadSplitDetailVC = BXGDownloadSplitDetailVC();
+        if(self.detailVC?.view.backgroundColor == UIColor.green) {
+            detailVC.view.backgroundColor = UIColor.purple;
+        } else {
+            detailVC.view.backgroundColor = UIColor.green;
+        }
+        //旧
+        let detailNav = self.detailVC?.navigationController;
+        detailNav?.setViewControllers([detailVC], animated:false);
+        
+        //保存新的
+        self.detailVC = detailVC;
+    }
+}

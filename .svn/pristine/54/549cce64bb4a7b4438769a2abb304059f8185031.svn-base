@@ -1,0 +1,399 @@
+//
+//  BXGCourseDetailVC.swift
+//  BoxueguHD
+//
+//  Created by Renying Wu on 2018/7/13.
+//  Copyright © 2018年 itcast. All rights reserved.
+//
+
+import UIKit
+
+
+class BXGPhaseCCell: UICollectionViewCell {
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        self.backgroundColor = UIColor.random()
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+}
+
+class ProgressView: UIView {
+    
+    lazy var progressBar: ProgressBar = {
+        return ProgressBar()
+    }()
+    
+    lazy var courseTitleLb: UILabel = {
+        let lb = UILabel()
+        lb.font = UIFont.pingFangSCRegular(withSize: 17)
+        lb.textColor = UIColor.hexColor(hex: 0x34495E)
+        lb.text = "前端与移动开发在线就业班"
+        return lb
+    }()
+    
+    lazy var dayHasStudyLb: UILabel = {
+        let lb = UILabel()
+        lb.text = "学习天数：156天"
+        lb.textColor = UIColor.hexColor(hex: 0x9AABB8)
+        lb.font = UIFont.pingFangSCRegular(withSize: 13)
+        return lb
+    }()
+    
+    lazy var dayLeftForService: UILabel = {
+        let lb = UILabel()
+        lb.text = "剩余服务时间：209天"
+        lb.textColor = UIColor.hexColor(hex: 0x9AABB8)
+        lb.font = UIFont.pingFangSCRegular(withSize: 13)
+        return lb
+    }()
+    
+    lazy var courseLearningProgress: UILabel = {
+        let lb = UILabel()
+        lb.text = "课程学习进度：0.00%"
+        lb.textColor = UIColor.hexColor(hex: 0x9AABB8)
+        lb.font = UIFont.pingFangSCRegular(withSize: 13)
+        return lb
+    }()
+    
+    
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        
+        addSubview(courseTitleLb)
+        addSubview(progressBar)
+        
+        addSubview(dayHasStudyLb)
+        addSubview(dayLeftForService)
+        addSubview(courseLearningProgress)
+        
+        let spView1 = UIView()
+        let spView2 = UIView()
+        let spView3 = UIView()
+        
+        addSubview(spView1)
+        addSubview(spView2)
+        addSubview(spView3)
+        
+        
+        
+        courseTitleLb.snp.makeConstraints { (make) in
+            make.left.equalToSuperview().offset(25)
+            make.top.equalToSuperview().offset(21)
+            make.right.equalToSuperview().offset(-25)
+        }
+        
+        progressBar.snp.makeConstraints { (make) in
+            make.left.right.equalToSuperview()
+            make.top.equalTo(courseTitleLb.snp.bottom).offset(20)
+            make.height.equalTo(93)
+        }
+        
+        dayHasStudyLb.snp.makeConstraints { (make) in
+            make.left.equalTo(courseTitleLb)
+            make.top.equalTo(courseTitleLb.snp.bottom).offset(2)
+        }
+        spView1.backgroundColor = UIColor.hexColor(hex: 0xcccccc)
+        spView1.snp.makeConstraints { (make) in
+            make.left.equalTo(dayHasStudyLb.snp.right).offset(10)
+            make.centerY.equalTo(dayHasStudyLb)
+            make.width.equalTo(1)
+            make.height.equalTo(10)
+        }
+        
+        dayLeftForService.snp.makeConstraints { (make) in
+            make.left.equalTo(spView1).offset(10)
+            make.top.equalTo(courseTitleLb.snp.bottom).offset(2)
+        }
+        spView2.backgroundColor = UIColor.hexColor(hex: 0xcccccc)
+        spView2.snp.makeConstraints { (make) in
+            make.left.equalTo(dayLeftForService.snp.right).offset(10)
+            make.centerY.equalTo(dayLeftForService)
+            make.width.equalTo(1)
+            make.height.equalTo(10)
+        }
+        
+        courseLearningProgress.snp.makeConstraints { (make) in
+            make.left.equalTo(spView2).offset(10)
+            make.top.equalTo(courseTitleLb.snp.bottom).offset(2)
+        }
+        
+        
+        
+        
+        
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+}
+
+class ProgressBar: UIScrollView {
+    
+    
+    
+    
+    class lineView: UIView {
+        
+    }
+    
+    class CycleVIew: UIView {
+        
+    }
+    
+    var contentView = ContentView()
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        
+        addSubview(contentView)
+        contentView.snp.makeConstraints { (make) in
+            make.width.equalTo(contentView.bounds.size.width)
+            make.height.equalTo(contentView.bounds.size.height)
+            make.left.right.top.bottom.equalToSuperview()
+        }
+        showsVerticalScrollIndicator = false
+        showsHorizontalScrollIndicator = false
+        
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    class ContentView: UIView {
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            
+            
+            let array = [2,2,2,1,0,0,0,0,2,2,2,1,0,0,0,0]
+            let array2 = ["开始","阶段1","阶段1","阶段1","阶段1","阶段1","阶段1","阶段1","开始","阶段1","阶段1","阶段1","阶段1","阶段1","阶段1","阶段1"]
+            let lineWidth = CGFloat(150)
+            let lineHeight = CGFloat(1)
+            let leftOffset = CGFloat(50)
+            let rightOffset = CGFloat(50)
+            let tagBottomOffset = CGFloat(26)
+            
+            
+            for (index, value) in array.enumerated() {
+                
+                let x = CGFloat(CGFloat(index) * lineWidth) + leftOffset
+                let y = CGFloat(30.0)
+                
+                
+                if(index != array.count - 1) {
+                    let view = UIView(frame: CGRect(x: x, y: y, width: lineWidth, height: lineHeight))
+                    view.backgroundColor = UIColor.hexColor(hex: 0xE5EDF2)
+                    addSubview(view)
+                }
+                
+                var imageName = "coursedetail_progess_none"
+                var hex = 0xD7E2EA
+                var textHex = 0x9AABB8
+                
+                if value == 1 {
+                    imageName = "coursedetail_progess_ing"
+                    hex = 0xFB564A
+                    textHex = 0xFB564A
+                    
+                }else if value == 2 {
+                    imageName = "coursedetail_progess_done"
+                    hex = 0x466DE2
+                    textHex = 0x466DE2
+                }
+                
+                let imgV = UIImageView(image: UIImage(named: imageName))
+                imgV.center = CGPoint(x: x, y: y)
+                addSubview(imgV)
+                
+                let label = UILabel()
+                label.textColor = UIColor.hexColor(hex: textHex)
+                label.font = UIFont.pingFangSCRegular(withSize: 13)
+                label.text = array2[index]
+                if(label.text != "开始") {
+                    label.layer.borderColor = UIColor.hexColor(hex: hex).cgColor
+                    label.layer.borderWidth = 0.7
+                }
+                
+                label.sizeToFit()
+                label.bounds = CGRect(x: 0, y: 0, width: label.bounds.size.width + 12, height: label.bounds.size.height)
+                label.textAlignment = .center
+                label.center = CGPoint(x: x, y: y + tagBottomOffset)
+                addSubview(label)
+                
+                self.bounds = CGRect(x: 0, y: 0, width: imgV.center.x + rightOffset, height: 93)
+                
+            }
+            
+        }
+        
+        required init?(coder aDecoder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
+    }
+    
+}
+
+class BXGCourseDetailVC: UIViewController {
+    
+    lazy var viewModel: BXGCourseViewModel = {
+        return BXGCourseViewModel()
+    }()
+    
+    lazy var progressView: ProgressView = {
+        let view = ProgressView()
+//        view.backgroundColor = UIColor.randomColor()
+        return view
+    }()
+    
+    lazy var phaseView: UICollectionView = {
+        let layout = UICollectionViewFlowLayout()
+        layout.minimumLineSpacing = 0
+        layout.minimumInteritemSpacing = 0
+        let view = UICollectionView(frame: CGRect.zero, collectionViewLayout: layout)
+        view.backgroundColor = UIColor.white
+        view.register(BXGPhaseCCell.self, forCellWithReuseIdentifier: "BXGPhaseCCell")
+        view.register(GroupSection.self, forSupplementaryViewOfKind: UICollectionElementKindSectionHeader, withReuseIdentifier: "GroupSection")
+        return view
+    }()
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        view.backgroundColor = UIColor.white
+        installUI()
+    }
+    
+    func installUI() {
+        view.addSubview(progressView)
+        view.addSubview(phaseView)
+        phaseView.delegate = self
+        phaseView.dataSource = self
+    
+        
+        let topSPView = UIView()
+        topSPView.backgroundColor = UIColor.hexColor(hex: 0xeff3f5)
+        let bottomSPView = UIView()
+        bottomSPView.backgroundColor = UIColor.hexColor(hex: 0xeff3f5)
+        view.addSubview(topSPView)
+        view.addSubview(bottomSPView)
+        topSPView.snp.makeConstraints { (make) in
+            make.left.right.equalToSuperview()
+            make.top.equalToSuperview()
+            make.height.equalTo(10)
+        }
+
+        progressView.snp.makeConstraints { (make) in
+            make.left.right.equalToSuperview()
+            make.top.equalTo(topSPView.snp.bottom)
+            make.height.equalTo(159)
+        }
+        
+        bottomSPView.snp.makeConstraints { (make) in
+            make.left.right.equalToSuperview()
+            make.top.equalTo(progressView.snp.bottom)
+            make.height.equalTo(10)
+        }
+        
+        phaseView.snp.makeConstraints { (make) in
+            make.left.right.equalToSuperview()
+            make.top.equalTo(bottomSPView.snp.bottom)
+            make.bottom.equalToSuperview()
+            
+        }
+    }
+    
+    func clickSectionHeader(indexPath: IndexPath) {
+        
+        if(viewModel.set.contains(indexPath.section)) {
+            
+            viewModel.set.remove(indexPath.section)
+        }else {
+            
+            viewModel.set.insert(indexPath.section)
+        }
+        phaseView.reloadSections(IndexSet(integer: indexPath.section))
+    }
+    
+}
+
+class GroupSection: UICollectionReusableView {
+    
+    var closure: (() -> Void)?
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        
+        let tap = UITapGestureRecognizer(target: self, action: #selector(clickTap))
+        self.addGestureRecognizer(tap)
+    }
+    
+    @objc func clickTap() {
+        if let c = closure {
+            c()
+        }
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+}
+
+
+extension BXGCourseDetailVC: UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
+    
+    func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
+        let view = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: "GroupSection", for: indexPath)
+        view.backgroundColor = UIColor.random()
+        if let v = view as? GroupSection {
+            v.closure = { [unowned self] in
+                self.clickSectionHeader(indexPath: indexPath)
+            }
+        }
+        return view
+    }
+    
+
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForHeaderInSection section: Int) -> CGSize {
+        return CGSize(width: collectionView.bounds.size.width, height: 75)
+    }
+    
+    func numberOfSections(in collectionView: UICollectionView) -> Int {
+        return 10
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        if(viewModel.set.contains(section)) {
+            return 0
+            
+        }else {
+            return 10
+        }
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "BXGPhaseCCell", for: indexPath)
+        return cell;
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        return CGSize(width: collectionView.bounds.size.width / 4, height: 140)
+        
+        
+        
+        
+//        if let value = , value {
+////            setcccc[indexPath.section] = false
+//            return CGSize(width: collectionView.bounds.size.width / 4, height: 140)
+//        }else {
+//            return CGSize(width: 0, height: 0)
+//        }
+
+    }
+    
+}
